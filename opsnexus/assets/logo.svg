@@ -1,0 +1,53 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="256" height="256" rx="40" fill="#080d18"/>
+
+  <!-- Outer hexagon -->
+  <path d="M128 20L216 68V164L128 212L40 164V68L128 20Z"
+        stroke="#00c8f0" stroke-width="3" fill="rgba(0,200,240,0.04)"/>
+
+  <!-- Middle hexagon -->
+  <path d="M128 52L188 87V157L128 192L68 157V87L128 52Z"
+        stroke="rgba(0,200,240,0.3)" stroke-width="1.5" fill="rgba(0,200,240,0.02)"/>
+
+  <!-- Inner hexagon -->
+  <path d="M128 84L164 106V150L128 172L92 150V106L128 84Z"
+        stroke="rgba(0,232,130,0.25)" stroke-width="1" fill="rgba(0,232,130,0.03)"/>
+
+  <!-- Center node -->
+  <circle cx="128" cy="128" r="10" fill="#00c8f0"/>
+  <circle cx="128" cy="128" r="16" stroke="#00c8f0" stroke-width="1" fill="none" opacity="0.4"/>
+
+  <!-- Outer nodes - top and bottom -->
+  <circle cx="128" cy="52" r="5.5" fill="#00e882"/>
+  <circle cx="128" cy="204" r="5.5" fill="#00e882"/>
+
+  <!-- Outer nodes - upper sides -->
+  <circle cx="188" cy="87" r="5.5" fill="#00c8f0" opacity="0.8"/>
+  <circle cx="68" cy="87" r="5.5" fill="#00c8f0" opacity="0.8"/>
+
+  <!-- Outer nodes - lower sides -->
+  <circle cx="188" cy="169" r="5.5" fill="#00c8f0" opacity="0.8"/>
+  <circle cx="68" cy="169" r="5.5" fill="#00c8f0" opacity="0.8"/>
+
+  <!-- Connection lines: center to outer nodes -->
+  <line x1="128" y1="118" x2="128" y2="57" stroke="#00c8f0" stroke-width="1.5" opacity="0.5"/>
+  <line x1="136" y1="123" x2="183" y2="91" stroke="#00c8f0" stroke-width="1.5" opacity="0.5"/>
+  <line x1="136" y1="133" x2="183" y2="165" stroke="#00c8f0" stroke-width="1.5" opacity="0.5"/>
+  <line x1="128" y1="138" x2="128" y2="199" stroke="#00c8f0" stroke-width="1.5" opacity="0.5"/>
+  <line x1="120" y1="133" x2="73" y2="165" stroke="#00c8f0" stroke-width="1.5" opacity="0.5"/>
+  <line x1="120" y1="123" x2="73" y2="91" stroke="#00c8f0" stroke-width="1.5" opacity="0.5"/>
+
+  <!-- Glow effect on center -->
+  <circle cx="128" cy="128" r="10" fill="#00c8f0" opacity="0.3" filter="url(#glow)"/>
+
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+</svg>

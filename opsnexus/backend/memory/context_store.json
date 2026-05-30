@@ -1,0 +1,10 @@
+{
+  "preferred_environment": "Azure East US",
+  "common_tools": ["Jenkins", "Azure", "Snowflake", "Tableau", "ADF", "Kubernetes", "Terraform"],
+  "approval_mode": "Required",
+  "sensitive_data_masking": "Enabled",
+  "demo_mode": "Enabled",
+  "default_user_role": "engineer",
+  "last_active_tool": "assistant",
+  "notes": "Context store is for demo purposes. Future versions will persist context per user session."
+}
