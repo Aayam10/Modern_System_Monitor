@@ -3,72 +3,94 @@ import { api } from '../api'
 
 export default function ActivityLogPage() {
   const [logs, setLogs] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('')
 
   useEffect(() => {
-    api.activity().then(setLogs).catch(() => {})
+    api.activity()
+      .then(setLogs)
+      .catch(() => setLogs([]))
+      .finally(() => setLoading(false))
   }, [])
 
   const filtered = logs.filter(l =>
-    !filter || [l.tool,l.action,l.user].some(x => x?.toLowerCase().includes(filter.toLowerCase()))
+    !filter ||
+    l.tool?.includes(filter.toLowerCase()) ||
+    l.action?.includes(filter.toLowerCase()) ||
+    l.user?.includes(filter.toLowerCase())
   )
 
+  const statusColor = (s: string) => {
+    if (s === 'completed') return 'var(--green)'
+    if (s === 'approval_required') return 'var(--amber)'
+    return 'var(--text-dim)'
+  }
+
   return (
-    <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden', padding:'0 0 0 0' }}>
-      {/* Toolbar */}
-      <div style={{ padding:'10px 16px', borderBottom:'1px solid var(--border)', background:'var(--panel)', flexShrink:0, display:'flex', alignItems:'center', gap:12 }}>
-        <span style={{ fontFamily:'var(--display)', fontWeight:700, fontSize:14, color:'var(--text)' }}>Activity Log</span>
+    <div className="p-6 max-w-5xl mx-auto space-y-5 fade-up">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-display font-bold text-xl" style={{ color: 'var(--text)' }}>Activity Log</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
+            Audit trail of all OpsNexus interactions. Sensitive data is masked before storage.
+          </p>
+        </div>
         <input
-          className="nx-input" style={{ width:220 }} value={filter}
-          onChange={e=>setFilter(e.target.value)} placeholder="Filter by tool, action, user..."
+          className="nexus-input"
+          style={{ width: 220 }}
+          placeholder="Filter by tool, action, user..."
+          value={filter}
+          onChange={e => setFilter(e.target.value)}
         />
-        <span className="badge badge-dim" style={{ fontSize:9, marginLeft:'auto' }}>{logs.length} entries · data masked</span>
       </div>
 
-      {/* Table */}
-      <div style={{ flex:1, overflowY:'auto' }}>
-        <div style={{
-          display:'grid',
-          gridTemplateColumns:'160px 80px 90px 80px 110px 1fr',
-          gap:8, padding:'7px 16px',
-          background:'var(--elevated)', borderBottom:'1px solid var(--border)',
-          position:'sticky', top:0, zIndex:10,
-        }}>
-          {['Timestamp','User','Action','Tool','Status','Summary'].map(h => (
-            <span key={h} className="sec-label">{h}</span>
+      <div className="nexus-card overflow-hidden">
+        {/* Table header */}
+        <div
+          className="grid gap-3 px-5 py-3"
+          style={{
+            gridTemplateColumns: '180px 80px 100px 80px 120px 1fr',
+            background: 'var(--bg-elevated)',
+            borderBottom: '1px solid var(--border)',
+          }}
+        >
+          {['Timestamp', 'User', 'Action', 'Tool', 'Status', 'Summary'].map(h => (
+            <span key={h} style={{ color: 'var(--text-dim)', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em' }}>
+              {h.toUpperCase()}
+            </span>
           ))}
         </div>
 
-        {filtered.length === 0 ? (
-          <div style={{ padding:'40px 16px', textAlign:'center', color:'var(--dim)', fontSize:12 }}>
-            {logs.length===0 ? 'No activity yet. Start a conversation in the Assistant tab.' : 'No entries match the filter.'}
+        {loading ? (
+          <div className="p-8 text-center" style={{ color: 'var(--text-dim)', fontSize: 13 }}>Loading audit log...</div>
+        ) : filtered.length === 0 ? (
+          <div className="p-8 text-center" style={{ color: 'var(--text-dim)', fontSize: 13 }}>
+            {logs.length === 0
+              ? 'No activity recorded yet. Start a conversation in the Assistant tab.'
+              : 'No entries match the filter.'}
           </div>
         ) : (
-          filtered.map((l,i) => (
+          filtered.map((entry, i) => (
             <div
               key={i}
+              className="grid gap-3 px-5 py-3 items-center hover:bg-opacity-50"
               style={{
-                display:'grid',
-                gridTemplateColumns:'160px 80px 90px 80px 110px 1fr',
-                gap:8, padding:'7px 16px', alignItems:'center',
-                borderBottom:'1px solid rgba(22,47,71,.5)',
-                background: i%2===0 ? 'transparent' : 'rgba(255,255,255,.012)',
+                gridTemplateColumns: '180px 80px 100px 80px 120px 1fr',
+                borderBottom: i < filtered.length - 1 ? '1px solid var(--border)' : 'none',
+                background: i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.012)',
               }}
             >
-              <span style={{ fontFamily:'var(--mono)', color:'var(--dim)', fontSize:10.5 }}>
-                {new Date(l.timestamp).toLocaleString()}
+              <span className="font-mono" style={{ color: 'var(--text-dim)', fontSize: 11 }}>
+                {new Date(entry.timestamp).toLocaleString()}
               </span>
-              <span style={{ color:'var(--muted)', fontSize:11.5 }}>{l.user}</span>
-              <span style={{ color:'var(--muted)', fontSize:11.5 }}>{l.action}</span>
-              <span className="badge badge-cyan" style={{ fontSize:9, justifySelf:'start' }}>{l.tool}</span>
-              <span style={{
-                color: l.approval_status==='completed' ? 'var(--green)' : 'var(--amber)',
-                fontSize:10.5, fontWeight:600,
-              }}>
-                {l.approval_status}
+              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{entry.user}</span>
+              <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>{entry.action}</span>
+              <span className="badge badge-cyan" style={{ fontSize: 10, justifySelf: 'start' }}>{entry.tool}</span>
+              <span style={{ color: statusColor(entry.approval_status), fontSize: 11, fontWeight: 500 }}>
+                {entry.approval_status}
               </span>
-              <span style={{ color:'var(--dim)', fontSize:11.5, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                {l.result_summary}
+              <span style={{ color: 'var(--text-dim)', fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {entry.result_summary}
               </span>
             </div>
           ))

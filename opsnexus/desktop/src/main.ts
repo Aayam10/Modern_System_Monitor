@@ -1,62 +1,46 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow } from 'electron'
 import path from 'path'
 
-const isDev = process.env.NODE_ENV !== 'production'
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:8000'
+const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
 
-// The Vite dev server URL - must match vite.config.ts server port
-const DEV_SERVER_URL = 'http://localhost:5173'
-
-function createWindow(): void {
+function createWindow() {
   const win = new BrowserWindow({
-    width: 1440,
+    width: 1400,
     height: 900,
     minWidth: 1100,
     minHeight: 700,
     frame: false,
     titleBarStyle: 'hidden',
-    backgroundColor: '#07111e',
-    show: false,
+    backgroundColor: '#080d18',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      webSecurity: false, // allow fetch to localhost:8000 in packaged app
     },
+    icon: path.join(__dirname, '../../assets/logo.png'),
   })
 
-  // Show window once ready to avoid white flash
-  win.once('ready-to-show', () => win.show())
-
-  // Open DevTools with F12
   win.webContents.on('before-input-event', (_, input) => {
-    if (input.key === 'F12') win.webContents.openDevTools({ mode: 'detach' })
+    if (input.key === 'F12') win.webContents.openDevTools()
   })
 
-  // Open external links in default browser
-  win.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url)
-    return { action: 'deny' }
-  })
-
-  if (isDev) {
+  if (DEV_SERVER_URL) {
     win.loadURL(DEV_SERVER_URL)
   } else {
     win.loadFile(path.join(__dirname, '../dist/index.html'))
   }
 
-  // Window control IPC handlers
-  ipcMain.on('window-minimize', () => win.minimize())
-  ipcMain.on('window-maximize', () => win.isMaximized() ? win.unmaximize() : win.maximize())
-  ipcMain.on('window-close',    () => win.close())
+  // Expose backend URL to renderer
+  win.webContents.executeJavaScript(`window.BACKEND_URL = "${BACKEND_URL}"`)
 }
 
-app.whenReady().then(() => {
-  createWindow()
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  })
-})
+app.whenReady().then(createWindow)
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
+})
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) createWindow()
 })

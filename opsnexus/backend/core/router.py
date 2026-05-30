@@ -1,6 +1,6 @@
 """
 Router: maps user message keywords to the correct action tool.
-Add new keyword entries here when adding a new integration module.
+Add new keywords here when adding a new integration.
 """
 
 KEYWORD_MAP = {
@@ -20,7 +20,7 @@ KEYWORD_MAP = {
     "kubernetes": "kubernetes",
     "k8s": "kubernetes",
     "pod": "kubernetes",
-    "crashloop": "kubernetes",
+    "node": "kubernetes",
     "deployment": "kubernetes",
     "tableau": "tableau",
     "workbook": "tableau",
@@ -36,12 +36,6 @@ KEYWORD_MAP = {
     "alert": "incident",
     "p1": "incident",
     "p2": "incident",
-    "standup": "standup",
-    "stand-up": "standup",
-    "stand up": "standup",
-    "yesterday": "standup",
-    "today": "standup",
-    "blockers": "standup",
 }
 
 
