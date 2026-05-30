@@ -2,6 +2,9 @@
 
 **OpsNexus v0.1.0 — CloudOps AI Operations Assistant — Demo Mode**
 
+> ⚠ The Docker backend must be running before opening the desktop app.
+> Start it first: `cd opsnexus && docker compose up --build`
+
 ---
 
 ## What is OpsNexus?
@@ -147,22 +150,67 @@ Expected response:
 
 ### Prerequisites
 - Node.js 18+
+- Docker (backend must be running first)
 
-### Install and start
+### Step 1 — Start the backend
+```bash
+cd opsnexus
+docker compose up --build
+```
 
+### Step 2 — Start the desktop app
 ```bash
 cd opsnexus/desktop
 npm install
 npm run dev
 ```
 
-The desktop app will launch and connect to `http://localhost:8000`.
-
-> The backend must be running for the assistant, actions, file analyzer, memory, and activity log pages to work.
+This launches **both** the Vite renderer dev server and the Electron desktop window simultaneously.
+The Electron window connects to the Vite dev server at `http://localhost:5173` and to the FastAPI backend at `http://localhost:8000`.
 
 ---
 
-## Pushing the Backend Image to Docker Hub
+## Packaging as a Windows Desktop App (.exe Installer)
+
+### Prerequisites
+- Node.js 18+
+- Windows (cross-compile from macOS/Linux is not supported for NSIS installer)
+
+### Build and package
+
+```bash
+cd opsnexus/desktop
+npm install
+npm run dist
+```
+
+This runs:
+1. `vite build` — builds the renderer to `dist/`
+2. `tsc -p tsconfig.electron.json` — compiles `main.ts` and `preload.ts` to `dist-electron/`
+3. `electron-builder` — packages everything into `release/`
+
+### Output files
+
+| File | Description |
+|------|-------------|
+| `release/OpsNexus Desktop Setup 0.1.0.exe` | NSIS Windows installer |
+| `release/win-unpacked/` | Unpacked Windows app folder (portable) |
+
+### App details
+- **Product name:** OpsNexus Desktop
+- **Version:** 0.1.0
+- **Icon:** `build/icon.png`
+- **Install directory:** User-selectable (defaults to Program Files)
+- **Desktop shortcut:** Created automatically
+
+### Important
+> The packaged `.exe` app still requires the Docker backend to be running on the same machine.
+> Start the backend first: `docker compose up --build`
+> Backend URL: `http://localhost:8000`
+
+---
+
+## Docker Hub Instructions
 
 ```bash
 # Log in to Docker Hub
