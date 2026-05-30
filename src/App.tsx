@@ -1,521 +1,588 @@
 import { useState, useEffect, useRef } from 'react'
 
-const NAV_ITEMS = ['Overview', 'Capabilities', 'Framework', 'Use Cases', 'Impact']
+// ─── Data ────────────────────────────────────────────────────────────────────
 
 const CAPABILITIES = [
   {
+    id: '01',
     icon: '◈',
     title: 'Advanced Natural Language Understanding',
-    desc: 'Interprets complex cloud operations requests, technical queries, and multi-step instructions with contextual precision across DevOps, BI, and platform domains.',
-    color: '#00d4ff',
-    tag: 'NLU Engine',
+    desc: 'Interprets complex multi-step CloudOps requests with contextual precision across DevOps, BI, and platform domains.',
+    tag: 'NLU · v2.4',
+    color: '#00c8f0',
   },
   {
+    id: '02',
     icon: '⬡',
     title: 'Autonomous Workflow Assistance',
-    desc: 'Orchestrates multi-step automation sequences, guides engineers through runbook procedures, and adapts to workflow state changes in real time.',
-    color: '#00ff88',
-    tag: 'Automation',
+    desc: 'Orchestrates multi-step automation sequences, adapts to workflow state changes, and guides engineers through runbook procedures in real time.',
+    tag: 'Automation · v1.9',
+    color: '#00e882',
   },
   {
+    id: '03',
     icon: '◎',
     title: 'Distributed Cloud Operations Support',
-    desc: 'Provides intelligent support across Azure, Kubernetes, Snowflake, and ADF environments with environment-aware context and cross-system awareness.',
-    color: '#00d4ff',
-    tag: 'Cloud Ops',
+    desc: 'Provides intelligent support across Azure, Kubernetes, Snowflake, and ADF with environment-aware context and cross-system awareness.',
+    tag: 'Cloud Ops · v2.1',
+    color: '#00c8f0',
   },
   {
+    id: '04',
     icon: '◇',
     title: 'Deployment Intelligence',
     desc: 'Validates deployment configurations, detects drift, coordinates pre/post-deployment checks, and surfaces rollback guidance when anomalies are detected.',
-    color: '#ff6b35',
-    tag: 'Deployments',
+    tag: 'Deploy · v1.7',
+    color: '#f59e0b',
   },
   {
+    id: '05',
     icon: '◉',
-    title: 'Monitoring and Incident Response',
+    title: 'Monitoring & Incident Response',
     desc: 'Correlates alerts, synthesizes incident timelines, suggests remediation steps, and escalates through defined approval chains based on severity context.',
-    color: '#00ff88',
-    tag: 'Observability',
+    tag: 'Observability · v2.0',
+    color: '#00e882',
   },
   {
+    id: '06',
     icon: '▣',
-    title: 'Documentation and Knowledge Capture',
-    desc: 'Automatically generates runbook entries, post-incident summaries, and structured knowledge artifacts from operational conversations and resolved tickets.',
-    color: '#00d4ff',
-    tag: 'Knowledge',
+    title: 'Documentation & Knowledge Capture',
+    desc: 'Automatically generates runbook entries, post-incident summaries, and structured knowledge artifacts from operational conversations.',
+    tag: 'Knowledge · v1.5',
+    color: '#00c8f0',
   },
   {
+    id: '07',
     icon: '⬟',
-    title: 'Security and Access Validation',
+    title: 'Security & Access Validation',
     desc: 'Enforces role-based access patterns, validates change approvals against policy, and audits privilege escalation requests before execution.',
-    color: '#ff6b35',
-    tag: 'Security',
+    tag: 'Security · v1.8',
+    color: '#f59e0b',
   },
 ]
 
-const IMPACT_METRICS = [
-  { label: 'Faster Troubleshooting', value: '70%', sub: 'reduction in MTTR', icon: '⚡' },
-  { label: 'Reduced Manual Work', value: '60%', sub: 'tasks automated', icon: '◈' },
-  { label: 'Standardized Deployments', value: '95%', sub: 'policy compliance', icon: '◎' },
-  { label: 'Improved Documentation', value: '3x', sub: 'knowledge capture rate', icon: '▣' },
-  { label: 'Better Operational Visibility', value: '100%', sub: 'cross-system tracing', icon: '◉' },
+const FRAMEWORK_POINTS = [
+  'Natural language interface for technical CloudOps requests',
+  'Integration with approved internal documentation and runbooks',
+  'Jenkins, Terraform, Azure, Snowflake, Tableau, Kubernetes, and ADF workflow support',
+  'Role-based access control with secure approval patterns',
+  'Reusable templates for deployment validation and incident response',
+  'Optimization for reducing manual work and improving consistency',
+]
+
+const INTEGRATIONS = [
+  { name: 'Azure', icon: '☁', c: '#0078d4' },
+  { name: 'Kubernetes', icon: '⎈', c: '#326ce5' },
+  { name: 'Jenkins', icon: '⚙', c: '#cc3433' },
+  { name: 'Terraform', icon: '◈', c: '#7b42bc' },
+  { name: 'Snowflake', icon: '❄', c: '#29b5e8' },
+  { name: 'Tableau', icon: '▦', c: '#e97627' },
+  { name: 'ADF', icon: '⬡', c: '#0078d4' },
+  { name: 'Runbooks', icon: '▣', c: '#00c8f0' },
+]
+
+const USE_CASES = [
+  { team: 'Cloud Operations', c: '#00c8f0', desc: 'Infrastructure validation, change management, and cross-region deployment coordination.' },
+  { team: 'BI & Analytics', c: '#00e882', desc: 'Snowflake query optimization, Tableau workbook deployment, and pipeline health monitoring.' },
+  { team: 'DevOps', c: '#f59e0b', desc: 'Jenkins pipeline troubleshooting, Terraform plan review, and deployment gate validation.' },
+  { team: 'Platform Engineering', c: '#00c8f0', desc: 'Kubernetes cluster health, node autoscaling guidance, and namespace policy enforcement.' },
+  { team: 'Support Teams', c: '#00e882', desc: 'Incident response coordination, escalation routing, and post-incident knowledge capture.' },
+  { team: 'Security & Compliance', c: '#f59e0b', desc: 'Access audit trails, approval workflow enforcement, and privilege escalation reviews.' },
+]
+
+const METRICS = [
+  { value: '70%', label: 'Faster Troubleshooting', sub: 'reduction in MTTR', icon: '⚡' },
+  { value: '60%', label: 'Reduced Manual Work', sub: 'tasks automated', icon: '◈' },
+  { value: '95%', label: 'Standardized Deployments', sub: 'policy compliance', icon: '◎' },
+  { value: '3×', label: 'Improved Documentation', sub: 'knowledge capture rate', icon: '▣' },
+  { value: '100%', label: 'Operational Visibility', sub: 'cross-system tracing', icon: '◉' },
 ]
 
 const CHAT_SUGGESTIONS = [
-  'Show me the latest deployment status for production',
-  'Walk me through incident response for a Kubernetes pod crash',
-  'What are the Snowflake query optimization recommendations?',
-  'Generate a runbook for the ADF pipeline failure',
+  'Show production deployment status',
+  'Kubernetes pod CrashLoopBackOff fix',
+  'Snowflake query optimization tips',
+  'Generate ADF pipeline failure runbook',
 ]
 
-function useIntersection(ref: React.RefObject<HTMLElement | null>, threshold = 0.1) {
-  const [visible, setVisible] = useState(false)
+const PAGES = ['Overview', 'Capabilities', 'Framework', 'Use Cases', 'Impact']
+
+// ─── Hooks ───────────────────────────────────────────────────────────────────
+
+function useVisible(ref: React.RefObject<HTMLElement | null>) {
+  const [v, setV] = useState(false)
   useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) setVisible(true) },
-      { threshold }
-    )
-    obs.observe(el)
+    if (!ref.current) return
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setV(true) }, { threshold: 0.08 })
+    obs.observe(ref.current)
     return () => obs.disconnect()
-  }, [ref, threshold])
-  return visible
+  }, [])
+  return v
 }
 
-export default function App() {
-  const [query, setQuery] = useState('')
-  const [activeNav, setActiveNav] = useState('Overview')
-  const [chatMessages, setChatMessages] = useState<{ role: 'user' | 'nexus'; text: string }[]>([])
-  const [isTyping, setIsTyping] = useState(false)
-  const [headerScrolled, setHeaderScrolled] = useState(false)
+// ─── Sub-components ──────────────────────────────────────────────────────────
 
-  const heroRef = useRef<HTMLElement>(null)
+function SectionLabel({ text }: { text: string }) {
+  return (
+    <div className="flex items-center gap-3 justify-center mb-5">
+      <div style={{ width: 32, height: 1, background: 'linear-gradient(90deg, transparent, #00c8f0)' }} />
+      <span style={{ color: '#00c8f0', fontSize: 11, fontWeight: 700, letterSpacing: '0.18em' }}>{text}</span>
+      <div style={{ width: 32, height: 1, background: 'linear-gradient(270deg, transparent, #00c8f0)' }} />
+    </div>
+  )
+}
+
+function CornerFrame({ color = '#00c8f0', size = 18 }: { color?: string; size?: number }) {
+  return (
+    <>
+      {/* TL */}
+      <span style={{ position: 'absolute', top: 0, left: 0, width: size, height: 2, background: color }} />
+      <span style={{ position: 'absolute', top: 0, left: 0, width: 2, height: size, background: color }} />
+      {/* TR */}
+      <span style={{ position: 'absolute', top: 0, right: 0, width: size, height: 2, background: color }} />
+      <span style={{ position: 'absolute', top: 0, right: 0, width: 2, height: size, background: color }} />
+      {/* BL */}
+      <span style={{ position: 'absolute', bottom: 0, left: 0, width: size, height: 2, background: color }} />
+      <span style={{ position: 'absolute', bottom: 0, left: 0, width: 2, height: size, background: color }} />
+      {/* BR */}
+      <span style={{ position: 'absolute', bottom: 0, right: 0, width: size, height: 2, background: color }} />
+      <span style={{ position: 'absolute', bottom: 0, right: 0, width: 2, height: size, background: color }} />
+    </>
+  )
+}
+
+function HexBadge({ label, active }: { label: string; active?: boolean }) {
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 5,
+        padding: '3px 10px',
+        borderRadius: 4,
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: '0.08em',
+        background: active ? 'rgba(0,200,240,0.12)' : 'rgba(255,255,255,0.04)',
+        border: `1px solid ${active ? 'rgba(0,200,240,0.35)' : 'rgba(255,255,255,0.08)'}`,
+        color: active ? '#00c8f0' : 'rgba(150,180,210,0.6)',
+      }}
+    >
+      {active && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#00c8f0', display: 'inline-block' }} />}
+      {label}
+    </span>
+  )
+}
+
+// ─── Main App ─────────────────────────────────────────────────────────────────
+
+export default function App() {
+  const [scrolled, setScrolled] = useState(false)
+  const [activeNav, setActiveNav] = useState('Overview')
+  const [chatInput, setChatInput] = useState('')
+  const [messages, setMessages] = useState<{ role: 'user' | 'nexus'; text: string }[]>([])
+  const [typing, setTyping] = useState(false)
+  const chatEndRef = useRef<HTMLDivElement>(null)
+
   const capsRef = useRef<HTMLElement>(null)
-  const frameworkRef = useRef<HTMLElement>(null)
-  const usecasesRef = useRef<HTMLElement>(null)
-  const impactRef = useRef<HTMLElement>(null)
+  const fwRef = useRef<HTMLElement>(null)
+  const ucRef = useRef<HTMLElement>(null)
+  const impRef = useRef<HTMLElement>(null)
   const chatRef = useRef<HTMLDivElement>(null)
 
-  const capsVisible = useIntersection(capsRef)
-  const frameworkVisible = useIntersection(frameworkRef)
-  const usecasesVisible = useIntersection(usecasesRef)
-  const impactVisible = useIntersection(impactRef)
+  const capsVis = useVisible(capsRef)
+  const fwVis = useVisible(fwRef)
+  const ucVis = useVisible(ucRef)
+  const impVis = useVisible(impRef)
 
   useEffect(() => {
-    const onScroll = () => setHeaderScrolled(window.scrollY > 40)
-    window.addEventListener('scroll', onScroll)
+    const onScroll = () => setScrolled(window.scrollY > 50)
+    window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
   useEffect(() => {
-    if (chatRef.current) {
-      chatRef.current.scrollTop = chatRef.current.scrollHeight
-    }
-  }, [chatMessages, isTyping])
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, typing])
 
-  const handleQuery = (text: string) => {
-    const q = text.trim()
-    if (!q) return
-    setChatMessages(prev => [...prev, { role: 'user', text: q }])
-    setQuery('')
-    setIsTyping(true)
-    setTimeout(() => {
-      setIsTyping(false)
-      setChatMessages(prev => [
-        ...prev,
-        {
-          role: 'nexus',
-          text: `Processing your request: "${q}"\n\nNEXUS has received your query and is routing it through the appropriate workflow engine. In a connected deployment, I would analyze your cloud operations context, cross-reference relevant runbooks, and surface actionable recommendations across your integrated systems.`,
-        },
-      ])
-    }, 1800)
+  const scrollTo = (id: string) => {
+    document.getElementById(id.toLowerCase())?.scrollIntoView({ behavior: 'smooth' })
+    setActiveNav(id)
   }
 
-  const scrollToSection = (id: string) => {
-    const el = document.getElementById(id)
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    setActiveNav(id.charAt(0).toUpperCase() + id.slice(1))
+  const sendMessage = (text: string) => {
+    const q = text.trim()
+    if (!q || typing) return
+    setChatInput('')
+    setMessages(p => [...p, { role: 'user', text: q }])
+    setTyping(true)
+    setTimeout(() => {
+      setTyping(false)
+      setMessages(p => [
+        ...p,
+        {
+          role: 'nexus',
+          text: `Request received: "${q}"\n\nIn a connected deployment, NEXUS would route this to the appropriate operations module — analyzing context, cross-referencing your runbooks, and surfacing actionable recommendations across integrated systems.\n\n⚠ Human approval required before any production execution.`,
+        },
+      ])
+    }, 1600)
   }
 
   return (
-    <div className="min-h-screen scanline" style={{ background: 'var(--color-surface)' }}>
-      {/* Header */}
+    <div style={{ background: '#060c18', color: '#dde8f2', fontFamily: "'Inter', sans-serif", overflowX: 'hidden' }}>
+
+      {/* ── HEADER ─────────────────────────────────────────────────── */}
       <header
-        className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
         style={{
-          background: headerScrolled
-            ? 'rgba(10, 15, 30, 0.95)'
-            : 'transparent',
-          backdropFilter: headerScrolled ? 'blur(20px)' : 'none',
-          borderBottom: headerScrolled ? '1px solid rgba(30, 48, 80, 0.8)' : 'none',
+          position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
+          height: 60,
+          background: scrolled ? 'rgba(6,12,24,0.95)' : 'transparent',
+          backdropFilter: scrolled ? 'blur(24px)' : 'none',
+          borderBottom: scrolled ? '1px solid rgba(0,200,240,0.1)' : 'none',
+          transition: 'all 0.4s ease',
+          display: 'flex', alignItems: 'center',
         }}
       >
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold"
-              style={{
-                background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,255,136,0.1))',
-                border: '1px solid rgba(0,212,255,0.4)',
-                color: '#00d4ff',
-              }}
-            >
-              NX
+        <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%', padding: '0 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: 8,
+              background: 'linear-gradient(135deg, rgba(0,200,240,0.15), rgba(0,232,130,0.08))',
+              border: '1px solid rgba(0,200,240,0.4)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#00c8f0', fontSize: 15, fontWeight: 800,
+              fontFamily: "'Space Grotesk', sans-serif",
+            }}>
+              N
             </div>
-            <span className="font-display font-semibold text-white tracking-wide" style={{ fontSize: '0.95rem' }}>
-              CloudOps <span style={{ color: '#00d4ff' }}>NEXUS</span>
-            </span>
+            <div>
+              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: 15, color: '#fff', letterSpacing: '0.04em' }}>
+                CloudOps <span style={{ color: '#00c8f0' }}>NEXUS</span>
+              </div>
+              <div style={{ fontSize: 9, color: 'rgba(0,200,240,0.5)', letterSpacing: '0.15em', fontWeight: 600 }}>ENTERPRISE AI OPERATIONS</div>
+            </div>
           </div>
 
-          <nav className="hidden md:flex items-center gap-1">
-            {NAV_ITEMS.map(item => (
+          {/* Nav */}
+          <nav style={{ display: 'flex', gap: 4 }}>
+            {PAGES.map(p => (
               <button
-                key={item}
-                onClick={() => scrollToSection(item.toLowerCase())}
-                className="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200"
+                key={p}
+                onClick={() => scrollTo(p)}
                 style={{
-                  color: activeNav === item ? '#00d4ff' : 'rgba(122,155,191,0.9)',
-                  background: activeNav === item ? 'rgba(0,212,255,0.08)' : 'transparent',
+                  background: activeNav === p ? 'rgba(0,200,240,0.08)' : 'transparent',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '6px 14px',
+                  fontSize: 13, fontWeight: 500, cursor: 'pointer',
+                  color: activeNav === p ? '#00c8f0' : 'rgba(180,210,230,0.65)',
+                  transition: 'all 0.2s',
+                  fontFamily: 'inherit',
                 }}
               >
-                {item}
+                {p}
               </button>
             ))}
           </nav>
 
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full pulse-dot" style={{ background: '#00ff88' }} />
-            <span style={{ color: '#00ff88', fontSize: '0.75rem', fontWeight: 500 }}>ONLINE</span>
+          {/* Status */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <span style={{
+              width: 7, height: 7, borderRadius: '50%', background: '#00e882',
+              display: 'inline-block',
+              boxShadow: '0 0 8px #00e882',
+              animation: 'pulse-hdr 2s ease-in-out infinite',
+            }} />
+            <span style={{ fontSize: 11, color: '#00e882', fontWeight: 700, letterSpacing: '0.1em' }}>SYSTEM ONLINE</span>
           </div>
         </div>
       </header>
 
-      {/* Hero */}
+      {/* ── HERO ───────────────────────────────────────────────────── */}
       <section
         id="overview"
-        ref={heroRef}
-        className="relative min-h-screen flex flex-col items-center justify-center pt-20 pb-16 grid-bg"
+        style={{
+          minHeight: '100vh', display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          paddingTop: 80, paddingBottom: 60, paddingLeft: 32, paddingRight: 32,
+          position: 'relative', overflow: 'hidden',
+          background: 'radial-gradient(ellipse 90% 60% at 50% 30%, rgba(0,200,240,0.055) 0%, transparent 70%), #060c18',
+        }}
       >
-        {/* Radial glow */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'radial-gradient(ellipse 80% 50% at 50% 40%, rgba(0,212,255,0.06) 0%, transparent 70%)',
-          }}
-        />
+        {/* Grid */}
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          backgroundImage: 'linear-gradient(rgba(0,200,240,0.028) 1px, transparent 1px), linear-gradient(90deg, rgba(0,200,240,0.028) 1px, transparent 1px)',
+          backgroundSize: '52px 52px',
+        }} />
 
-        {/* Corner decorations */}
-        <div className="absolute top-24 left-8 opacity-40">
-          <div style={{ width: 60, height: 1, background: 'linear-gradient(90deg, #00d4ff, transparent)' }} />
-          <div style={{ width: 1, height: 60, background: 'linear-gradient(180deg, #00d4ff, transparent)', marginTop: -1 }} />
+        {/* Scanline sweep */}
+        <div style={{
+          position: 'absolute', left: 0, right: 0, height: 1,
+          background: 'linear-gradient(90deg, transparent 0%, rgba(0,200,240,0.18) 50%, transparent 100%)',
+          animation: 'sweep 7s linear infinite',
+          pointerEvents: 'none',
+        }} />
+
+        {/* Corner brackets */}
+        <div style={{ position: 'absolute', top: 80, left: 40, pointerEvents: 'none' }}>
+          <div style={{ width: 48, height: 2, background: 'rgba(0,200,240,0.35)' }} />
+          <div style={{ width: 2, height: 48, background: 'rgba(0,200,240,0.35)', marginTop: -2 }} />
         </div>
-        <div className="absolute top-24 right-8 opacity-40">
-          <div style={{ width: 60, height: 1, background: 'linear-gradient(270deg, #00d4ff, transparent)', marginLeft: 'auto' }} />
-          <div style={{ width: 1, height: 60, background: 'linear-gradient(180deg, #00d4ff, transparent)', marginLeft: 'auto', marginTop: -1 }} />
+        <div style={{ position: 'absolute', top: 80, right: 40, pointerEvents: 'none' }}>
+          <div style={{ width: 48, height: 2, background: 'rgba(0,200,240,0.35)', marginLeft: 'auto' }} />
+          <div style={{ width: 2, height: 48, background: 'rgba(0,200,240,0.35)', marginLeft: 'auto', marginTop: -2 }} />
+        </div>
+        <div style={{ position: 'absolute', bottom: 60, left: 40, pointerEvents: 'none' }}>
+          <div style={{ width: 2, height: 48, background: 'rgba(0,200,240,0.25)' }} />
+          <div style={{ width: 48, height: 2, background: 'rgba(0,200,240,0.25)' }} />
+        </div>
+        <div style={{ position: 'absolute', bottom: 60, right: 40, pointerEvents: 'none' }}>
+          <div style={{ width: 2, height: 48, background: 'rgba(0,200,240,0.25)', marginLeft: 'auto' }} />
+          <div style={{ width: 48, height: 2, background: 'rgba(0,200,240,0.25)', marginLeft: 'auto' }} />
         </div>
 
-        <div className="relative z-10 text-center max-w-5xl mx-auto px-6 fade-in-up">
-          {/* Badge */}
-          <div
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-8"
-            style={{
-              background: 'rgba(0,212,255,0.08)',
-              border: '1px solid rgba(0,212,255,0.2)',
-            }}
-          >
-            <div className="w-1.5 h-1.5 rounded-full pulse-dot" style={{ background: '#00d4ff' }} />
-            <span style={{ color: '#00d4ff', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.1em' }}>
-              ENTERPRISE AI OPERATIONS PLATFORM
+        {/* Content */}
+        <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', maxWidth: 880, animation: 'fadeUp 0.8s ease-out both' }}>
+          {/* System badge */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 32,
+            padding: '7px 18px', borderRadius: 100,
+            background: 'rgba(0,200,240,0.07)',
+            border: '1px solid rgba(0,200,240,0.22)',
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#00c8f0', display: 'inline-block', boxShadow: '0 0 7px #00c8f0', animation: 'pulse-hdr 2s infinite' }} />
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.14em', color: '#00c8f0' }}>
+              ENTERPRISE AI OPERATIONS PLATFORM · DEMO v0.1.0
             </span>
           </div>
 
-          <h1
-            className="font-display font-bold mb-6 leading-tight"
-            style={{ fontSize: 'clamp(2.4rem, 6vw, 4.5rem)' }}
-          >
-            <span className="gradient-text-accent">CloudOps NEXUS</span>
+          <h1 style={{
+            fontFamily: "'Space Grotesk', sans-serif",
+            fontSize: 'clamp(2.6rem, 6.5vw, 5rem)',
+            fontWeight: 800, lineHeight: 1.08,
+            marginBottom: 28, letterSpacing: '-0.02em',
+          }}>
+            <span style={{
+              background: 'linear-gradient(135deg, #ffffff 30%, #00c8f0 100%)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}>
+              CloudOps NEXUS
+            </span>
             <br />
-            <span style={{ color: 'rgba(226,232,240,0.9)', fontSize: '0.6em', fontWeight: 400 }}>
+            <span style={{ color: 'rgba(200,220,240,0.55)', fontSize: '0.48em', fontWeight: 400, letterSpacing: '0.01em' }}>
               Development and Capabilities
             </span>
           </h1>
 
-          <p
-            className="mx-auto mb-12 leading-relaxed"
-            style={{
-              maxWidth: 760,
-              color: 'rgba(122,155,191,0.9)',
-              fontSize: 'clamp(0.95rem, 2vw, 1.1rem)',
-              lineHeight: 1.75,
-            }}
-          >
+          <p style={{
+            fontSize: 'clamp(0.95rem, 2vw, 1.12rem)',
+            lineHeight: 1.85,
+            color: 'rgba(160,195,220,0.8)',
+            maxWidth: 720, margin: '0 auto 44px',
+          }}>
             CloudOps NEXUS combines natural language understanding, automation workflows, infrastructure intelligence,
             and operational execution support — allowing engineers to process complex cloud operations requests,
             troubleshoot issues, and manage deployment workflows across enterprise systems.
           </p>
 
-          <div className="flex flex-wrap justify-center gap-4">
+          <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
             <button
-              onClick={() => scrollToSection('capabilities')}
-              className="px-7 py-3.5 rounded-xl font-semibold text-sm transition-all duration-300"
+              onClick={() => scrollTo('Capabilities')}
               style={{
-                background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,212,255,0.1))',
-                border: '1px solid rgba(0,212,255,0.4)',
-                color: '#00d4ff',
+                padding: '13px 30px', borderRadius: 9, fontWeight: 700, fontSize: 14,
+                background: 'linear-gradient(135deg, rgba(0,200,240,0.22), rgba(0,200,240,0.08))',
+                border: '1px solid rgba(0,200,240,0.45)',
+                color: '#00c8f0', cursor: 'pointer', fontFamily: 'inherit',
+                transition: 'all 0.25s', letterSpacing: '0.02em',
               }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'linear-gradient(135deg, rgba(0,212,255,0.3), rgba(0,212,255,0.15))'
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,212,255,0.1))'
-              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0,200,240,0.22)'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 0 24px rgba(0,200,240,0.25)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'linear-gradient(135deg, rgba(0,200,240,0.22), rgba(0,200,240,0.08))'; (e.currentTarget as HTMLButtonElement).style.boxShadow = 'none' }}
             >
               Explore Capabilities
             </button>
             <button
-              onClick={() => scrollToSection('impact')}
-              className="px-7 py-3.5 rounded-xl font-semibold text-sm transition-all duration-300"
+              onClick={() => scrollTo('Impact')}
               style={{
+                padding: '13px 30px', borderRadius: 9, fontWeight: 600, fontSize: 14,
                 background: 'rgba(255,255,255,0.04)',
                 border: '1px solid rgba(255,255,255,0.1)',
-                color: 'rgba(226,232,240,0.8)',
+                color: 'rgba(200,220,240,0.75)', cursor: 'pointer', fontFamily: 'inherit',
+                transition: 'all 0.25s',
               }}
-              onMouseEnter={e => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'
-              }}
-              onMouseLeave={e => {
-                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)'
-              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.08)'; (e.currentTarget as HTMLButtonElement).style.color = '#fff' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.04)'; (e.currentTarget as HTMLButtonElement).style.color = 'rgba(200,220,240,0.75)' }}
             >
               View Impact
             </button>
           </div>
         </div>
 
-        {/* Stats bar */}
-        <div
-          className="relative z-10 mt-16 w-full max-w-4xl mx-auto px-6"
-        >
-          <div
-            className="grid grid-cols-3 gap-px rounded-2xl overflow-hidden"
-            style={{ border: '1px solid rgba(30,48,80,0.8)', background: 'rgba(30,48,80,0.3)' }}
-          >
-            {[
-              { label: 'Integrated Platforms', val: '10+' },
-              { label: 'Automation Domains', val: '7' },
-              { label: 'Enterprise Ready', val: '100%' },
-            ].map((stat, i) => (
-              <div
-                key={i}
-                className="flex flex-col items-center justify-center py-6 px-4"
-                style={{ background: 'rgba(10,15,30,0.8)' }}
-              >
-                <span
-                  className="font-display font-bold mb-1"
-                  style={{ color: '#00d4ff', fontSize: '1.8rem' }}
-                >
-                  {stat.val}
-                </span>
-                <span style={{ color: 'rgba(122,155,191,0.7)', fontSize: '0.75rem', textAlign: 'center' }}>
-                  {stat.label}
-                </span>
-              </div>
-            ))}
-          </div>
+        {/* Stats strip */}
+        <div style={{
+          position: 'relative', zIndex: 2,
+          marginTop: 64, width: '100%', maxWidth: 860,
+          display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+          border: '1px solid rgba(0,200,240,0.13)',
+          borderRadius: 14, overflow: 'hidden',
+          animation: 'fadeUp 0.9s 0.2s ease-out both',
+        }}>
+          {[
+            { v: '10+', l: 'Integrated Platforms' },
+            { v: '7', l: 'Automation Domains' },
+            { v: '100%', l: 'Enterprise Ready' },
+          ].map((s, i) => (
+            <div
+              key={i}
+              style={{
+                textAlign: 'center', padding: '24px 16px',
+                background: 'rgba(6,12,24,0.85)',
+                borderRight: i < 2 ? '1px solid rgba(0,200,240,0.1)' : 'none',
+              }}
+            >
+              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 36, fontWeight: 800, color: '#00c8f0', lineHeight: 1 }}>{s.v}</div>
+              <div style={{ fontSize: 12, color: 'rgba(140,175,200,0.65)', marginTop: 6, letterSpacing: '0.04em' }}>{s.l}</div>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* Capabilities */}
+      {/* ── CAPABILITIES ───────────────────────────────────────────── */}
       <section
         id="capabilities"
         ref={capsRef}
-        className="py-24 px-6"
-        style={{ background: 'var(--color-surface-2)' }}
+        style={{
+          padding: '110px 32px',
+          background: 'linear-gradient(180deg, #060c18 0%, #080f1e 100%)',
+        }}
       >
-        <div className="max-w-7xl mx-auto">
-          <SectionHeader
-            visible={capsVisible}
-            tag="CORE CAPABILITIES"
-            title="Key Capabilities"
-            sub="Seven integrated intelligence layers powering end-to-end cloud operations automation."
-          />
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 64, opacity: capsVis ? 1 : 0, transform: capsVis ? 'none' : 'translateY(20px)', transition: 'all 0.7s ease' }}>
+            <SectionLabel text="CORE CAPABILITIES" />
+            <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', fontWeight: 800, color: '#fff', marginBottom: 14 }}>
+              Seven Intelligence Layers
+            </h2>
+            <p style={{ color: 'rgba(140,175,200,0.7)', fontSize: 15, maxWidth: 520, margin: '0 auto' }}>
+              Integrated capability modules that power end-to-end cloud operations automation.
+            </p>
+          </div>
 
-          <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mt-14 ${capsVisible ? 'stagger' : 'opacity-0'}`}>
-            {CAPABILITIES.map((cap) => (
-              <div
-                key={cap.title}
-                className="card-hover relative rounded-2xl p-6 overflow-hidden"
-                style={{ background: 'var(--color-surface-3)' }}
-              >
-                {/* Top accent line */}
-                <div
-                  className="absolute top-0 left-6 right-6 h-px"
-                  style={{ background: `linear-gradient(90deg, transparent, ${cap.color}40, transparent)` }}
-                />
-
-                <div className="flex items-start gap-4 mb-4">
-                  <div
-                    className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-                    style={{
-                      background: `${cap.color}15`,
-                      border: `1px solid ${cap.color}30`,
-                      color: cap.color,
-                    }}
-                  >
-                    {cap.icon}
-                  </div>
-                  <div
-                    className="px-2.5 py-1 rounded-md text-xs font-semibold self-start mt-0.5"
-                    style={{
-                      background: `${cap.color}10`,
-                      border: `1px solid ${cap.color}25`,
-                      color: cap.color,
-                      letterSpacing: '0.05em',
-                    }}
-                  >
-                    {cap.tag}
-                  </div>
-                </div>
-
-                <h3
-                  className="font-display font-semibold mb-3 leading-snug"
-                  style={{ color: 'rgba(226,232,240,0.95)', fontSize: '0.95rem' }}
-                >
-                  {cap.title}
-                </h3>
-                <p style={{ color: 'rgba(122,155,191,0.8)', fontSize: '0.85rem', lineHeight: 1.7 }}>
-                  {cap.desc}
-                </p>
-              </div>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+            gap: 20,
+          }}>
+            {CAPABILITIES.map((cap, i) => (
+              <CapabilityCard key={cap.id} cap={cap} visible={capsVis} delay={i * 0.07} />
             ))}
-
-            {/* Last card full-width on lg */}
-            <div
-              className="card-hover relative rounded-2xl p-6 overflow-hidden md:col-span-2 lg:col-span-1 lg:col-start-2"
-              style={{ display: 'none' }}
-            />
           </div>
         </div>
       </section>
 
-      {/* Development Framework */}
+      {/* ── FRAMEWORK ──────────────────────────────────────────────── */}
       <section
         id="framework"
-        ref={frameworkRef}
-        className="py-24 px-6"
-        style={{ background: 'var(--color-surface)' }}
+        ref={fwRef}
+        style={{ padding: '110px 32px', background: '#060c18' }}
       >
-        <div className="max-w-7xl mx-auto">
-          <SectionHeader
-            visible={frameworkVisible}
-            tag="DEVELOPMENT FRAMEWORK"
-            title="Engineering Foundation"
-            sub="A structured, extensible platform for building repeatable cloud operations automation."
-          />
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 64, opacity: fwVis ? 1 : 0, transform: fwVis ? 'none' : 'translateY(20px)', transition: 'all 0.7s' }}>
+            <SectionLabel text="DEVELOPMENT FRAMEWORK" />
+            <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', fontWeight: 800, color: '#fff', marginBottom: 14 }}>
+              Engineering Foundation
+            </h2>
+            <p style={{ color: 'rgba(140,175,200,0.7)', fontSize: 15, maxWidth: 580, margin: '0 auto' }}>
+              A structured, extensible platform for building repeatable cloud operations automation workflows.
+            </p>
+          </div>
 
-          <div className={`grid grid-cols-1 lg:grid-cols-2 gap-12 mt-14 ${frameworkVisible ? 'fade-in-up' : 'opacity-0'}`}>
-            <div>
-              <p
-                className="leading-relaxed mb-8"
-                style={{ color: 'rgba(122,155,191,0.85)', fontSize: '1rem', lineHeight: 1.8 }}
-              >
-                Developers and Cloud Operations engineers can use CloudOps NEXUS as an internal AI-powered
-                operations framework to build repeatable automation, troubleshooting, and support workflows.
-                The framework abstracts complexity while preserving full auditability and control.
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }}>
+            {/* Left */}
+            <div style={{ opacity: fwVis ? 1 : 0, transform: fwVis ? 'none' : 'translateX(-20px)', transition: 'all 0.7s 0.1s' }}>
+              <p style={{ color: 'rgba(140,175,200,0.75)', fontSize: 15, lineHeight: 1.85, marginBottom: 28 }}>
+                Developers and Cloud Operations engineers can use CloudOps NEXUS as an internal
+                AI-powered operations framework to build repeatable automation, troubleshooting,
+                and support workflows. The framework abstracts complexity while preserving full auditability and control.
               </p>
-
-              <div className="space-y-3">
-                {[
-                  'Natural language interface for technical requests',
-                  'Integration with approved internal documentation and runbooks',
-                  'Jenkins, Terraform, Azure, Snowflake, Tableau, Kubernetes, and ADF workflow support',
-                  'Role-based access and secure approval patterns',
-                  'Reusable templates for deployment validation and incident response',
-                  'Optimization for reducing manual work and improving consistency',
-                ].map((item, i) => (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {FRAMEWORK_POINTS.map((pt, i) => (
                   <div
                     key={i}
-                    className="flex items-start gap-3 p-3.5 rounded-xl transition-all duration-200 hover:bg-opacity-80"
-                    style={{ background: 'rgba(0,212,255,0.03)', border: '1px solid rgba(30,48,80,0.6)' }}
+                    style={{
+                      display: 'flex', alignItems: 'flex-start', gap: 12,
+                      padding: '12px 16px', borderRadius: 10,
+                      background: 'rgba(0,200,240,0.03)',
+                      border: '1px solid rgba(0,200,240,0.1)',
+                      opacity: fwVis ? 1 : 0,
+                      transform: fwVis ? 'none' : 'translateX(-10px)',
+                      transition: `all 0.5s ${0.15 + i * 0.07}s`,
+                    }}
                   >
-                    <div
-                      className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5"
-                      style={{ background: 'rgba(0,212,255,0.15)', border: '1px solid rgba(0,212,255,0.3)' }}
-                    >
-                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                        <path d="M1.5 5L4 7.5L8.5 2.5" stroke="#00d4ff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    <span style={{
+                      width: 20, height: 20, borderRadius: 5, flexShrink: 0, marginTop: 1,
+                      background: 'rgba(0,200,240,0.12)', border: '1px solid rgba(0,200,240,0.3)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+                        <path d="M1 5L4 8L9 2" stroke="#00c8f0" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
-                    </div>
-                    <span style={{ color: 'rgba(226,232,240,0.85)', fontSize: '0.875rem', lineHeight: 1.6 }}>
-                      {item}
                     </span>
+                    <span style={{ color: 'rgba(200,220,240,0.85)', fontSize: 13.5, lineHeight: 1.6 }}>{pt}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="flex flex-col gap-5">
-              {/* Integration stack visual */}
-              <div
-                className="rounded-2xl p-6 flex-1"
-                style={{
-                  background: 'var(--color-surface-3)',
-                  border: '1px solid rgba(30,48,80,0.8)',
-                }}
-              >
-                <p
-                  className="font-display font-semibold mb-5"
-                  style={{ color: 'rgba(226,232,240,0.9)', fontSize: '0.9rem', letterSpacing: '0.02em' }}
-                >
-                  Supported Integration Stack
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { name: 'Azure', icon: '☁', color: '#0078d4' },
-                    { name: 'Kubernetes', icon: '⎈', color: '#326ce5' },
-                    { name: 'Jenkins', icon: '⚙', color: '#d33833' },
-                    { name: 'Terraform', icon: '◈', color: '#5c4ee5' },
-                    { name: 'Snowflake', icon: '❄', color: '#29b5e8' },
-                    { name: 'Tableau', icon: '▦', color: '#e97627' },
-                    { name: 'ADF', icon: '⬡', color: '#0078d4' },
-                    { name: 'Runbooks', icon: '▣', color: '#00d4ff' },
-                  ].map((tech) => (
+            {/* Right */}
+            <div style={{ opacity: fwVis ? 1 : 0, transform: fwVis ? 'none' : 'translateX(20px)', transition: 'all 0.7s 0.15s', display: 'flex', flexDirection: 'column', gap: 18 }}>
+              {/* Integration stack */}
+              <div style={{
+                flex: 1, borderRadius: 16, padding: 24,
+                background: 'rgba(8,15,30,0.8)',
+                border: '1px solid rgba(0,200,240,0.12)',
+                position: 'relative', overflow: 'hidden',
+              }}>
+                <CornerFrame color="rgba(0,200,240,0.35)" size={14} />
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: 'rgba(0,200,240,0.6)', marginBottom: 18 }}>
+                  SUPPORTED INTEGRATION STACK
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  {INTEGRATIONS.map(t => (
                     <div
-                      key={tech.name}
-                      className="flex items-center gap-2.5 p-3 rounded-xl transition-all duration-200"
+                      key={t.name}
                       style={{
-                        background: 'rgba(10,15,30,0.6)',
-                        border: '1px solid rgba(30,48,80,0.6)',
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '10px 14px', borderRadius: 9,
+                        background: 'rgba(6,12,24,0.7)',
+                        border: '1px solid rgba(255,255,255,0.06)',
+                        transition: 'all 0.2s',
+                        cursor: 'default',
                       }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = `${t.c}40`; (e.currentTarget as HTMLDivElement).style.background = `${t.c}0a` }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = 'rgba(255,255,255,0.06)'; (e.currentTarget as HTMLDivElement).style.background = 'rgba(6,12,24,0.7)' }}
                     >
-                      <span style={{ color: tech.color, fontSize: '1rem' }}>{tech.icon}</span>
-                      <span style={{ color: 'rgba(226,232,240,0.8)', fontSize: '0.8rem', fontWeight: 500 }}>
-                        {tech.name}
-                      </span>
+                      <span style={{ color: t.c, fontSize: 16 }}>{t.icon}</span>
+                      <span style={{ color: 'rgba(200,220,240,0.8)', fontSize: 13, fontWeight: 500 }}>{t.name}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Architecture note */}
-              <div
-                className="rounded-2xl p-5"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(0,212,255,0.06), rgba(0,255,136,0.03))',
-                  border: '1px solid rgba(0,212,255,0.2)',
-                }}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-1.5 h-1.5 rounded-full" style={{ background: '#00d4ff' }} />
-                  <span style={{ color: '#00d4ff', fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.1em' }}>
-                    ARCHITECTURE
-                  </span>
+              <div style={{
+                borderRadius: 12, padding: '16px 20px',
+                background: 'linear-gradient(135deg, rgba(0,200,240,0.07), rgba(0,232,130,0.03))',
+                border: '1px solid rgba(0,200,240,0.18)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#00c8f0', display: 'inline-block' }} />
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.14em', color: '#00c8f0' }}>SECURITY ARCHITECTURE</span>
                 </div>
-                <p style={{ color: 'rgba(122,155,191,0.85)', fontSize: '0.82rem', lineHeight: 1.7 }}>
-                  NEXUS operates as a stateless orchestration layer — all credentials, secrets, and
-                  execution contexts are managed through your existing enterprise security perimeter.
+                <p style={{ color: 'rgba(140,175,200,0.75)', fontSize: 13, lineHeight: 1.7 }}>
+                  NEXUS operates as a stateless orchestration layer. All credentials, secrets, and execution contexts
+                  are managed through your existing enterprise security perimeter.
                 </p>
               </div>
             </div>
@@ -523,195 +590,150 @@ export default function App() {
         </div>
       </section>
 
-      {/* Business Use Cases */}
+      {/* ── USE CASES ──────────────────────────────────────────────── */}
       <section
-        id="usecases"
-        ref={usecasesRef}
-        className="py-24 px-6"
-        style={{ background: 'var(--color-surface-2)' }}
+        id="use cases"
+        ref={ucRef}
+        style={{ padding: '110px 32px', background: 'linear-gradient(180deg, #080f1e 0%, #060c18 100%)' }}
       >
-        <div className="max-w-7xl mx-auto">
-          <SectionHeader
-            visible={usecasesVisible}
-            tag="BUSINESS USE CASES"
-            title="Enterprise Applications"
-            sub="From deployment planning to incident response — NEXUS serves every cloud operations team."
-          />
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 64, opacity: ucVis ? 1 : 0, transform: ucVis ? 'none' : 'translateY(20px)', transition: 'all 0.7s' }}>
+            <SectionLabel text="BUSINESS USE CASES" />
+            <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', fontWeight: 800, color: '#fff', marginBottom: 14 }}>
+              Enterprise Applications
+            </h2>
+          </div>
 
-          <div className={`mt-14 ${usecasesVisible ? 'fade-in-up' : 'opacity-0'}`}>
-            <div
-              className="rounded-2xl p-8 mb-8"
-              style={{
-                background: 'var(--color-surface-3)',
-                border: '1px solid rgba(30,48,80,0.8)',
-              }}
-            >
-              <p
-                className="leading-relaxed mb-8"
-                style={{ color: 'rgba(122,155,191,0.85)', fontSize: '1rem', lineHeight: 1.8, maxWidth: 900 }}
-              >
-                CloudOps NEXUS can assist Cloud Operations, BI, DevOps, platform engineering, and support
-                teams with deployment planning, pipeline troubleshooting, infrastructure validation,
-                monitoring review, Snowflake/Tableau operations, ADF pipeline support, access checks,
-                and internal knowledge sharing.
-              </p>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {[
-                  { team: 'Cloud Operations', use: 'Infrastructure validation, change management, and cross-region deployment coordination.', color: '#00d4ff' },
-                  { team: 'BI & Analytics', use: 'Snowflake query optimization, Tableau workbook deployment, and pipeline health monitoring.', color: '#00ff88' },
-                  { team: 'DevOps', use: 'Jenkins pipeline troubleshooting, Terraform plan review, and deployment gate validation.', color: '#ff6b35' },
-                  { team: 'Platform Engineering', use: 'Kubernetes cluster health, node autoscaling guidance, and namespace policy enforcement.', color: '#00d4ff' },
-                  { team: 'Support Teams', use: 'Incident response coordination, escalation routing, and post-incident knowledge capture.', color: '#00ff88' },
-                  { team: 'Security & Compliance', use: 'Access audit trails, approval workflow enforcement, and privilege escalation reviews.', color: '#ff6b35' },
-                ].map((item, i) => (
-                  <div
-                    key={i}
-                    className="card-hover rounded-xl p-5"
-                    style={{ background: 'rgba(10,15,30,0.6)', border: `1px solid ${item.color}20` }}
-                  >
-                    <div
-                      className="inline-block px-2.5 py-1 rounded-md text-xs font-semibold mb-3"
-                      style={{
-                        background: `${item.color}12`,
-                        border: `1px solid ${item.color}30`,
-                        color: item.color,
-                      }}
-                    >
-                      {item.team}
-                    </div>
-                    <p style={{ color: 'rgba(122,155,191,0.8)', fontSize: '0.83rem', lineHeight: 1.65 }}>
-                      {item.use}
-                    </p>
+          <div style={{
+            borderRadius: 18, padding: 32,
+            background: 'rgba(8,15,30,0.8)',
+            border: '1px solid rgba(0,200,240,0.1)',
+            marginBottom: 28,
+            opacity: ucVis ? 1 : 0, transform: ucVis ? 'none' : 'translateY(16px)', transition: 'all 0.7s 0.1s',
+          }}>
+            <p style={{ color: 'rgba(150,185,215,0.8)', fontSize: 15, lineHeight: 1.85, maxWidth: 900, marginBottom: 28 }}>
+              CloudOps NEXUS can assist Cloud Operations, BI, DevOps, platform engineering, and support teams
+              with deployment planning, pipeline troubleshooting, infrastructure validation, monitoring review,
+              Snowflake/Tableau operations, ADF pipeline support, access checks, and internal knowledge sharing.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+              {USE_CASES.map((uc, i) => (
+                <div
+                  key={uc.team}
+                  style={{
+                    padding: '18px 20px', borderRadius: 12,
+                    background: 'rgba(6,12,24,0.7)',
+                    border: `1px solid ${uc.c}18`,
+                    opacity: ucVis ? 1 : 0,
+                    transform: ucVis ? 'none' : 'translateY(12px)',
+                    transition: `all 0.5s ${0.15 + i * 0.08}s`,
+                    cursor: 'default',
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.borderColor = `${uc.c}40`; (e.currentTarget as HTMLDivElement).style.background = `${uc.c}08` }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.borderColor = `${uc.c}18`; (e.currentTarget as HTMLDivElement).style.background = 'rgba(6,12,24,0.7)' }}
+                >
+                  <div style={{
+                    display: 'inline-block', marginBottom: 10,
+                    padding: '3px 10px', borderRadius: 5, fontSize: 11, fontWeight: 700,
+                    background: `${uc.c}12`, border: `1px solid ${uc.c}30`, color: uc.c,
+                    letterSpacing: '0.05em',
+                  }}>
+                    {uc.team}
                   </div>
-                ))}
-              </div>
+                  <p style={{ color: 'rgba(140,175,200,0.75)', fontSize: 13, lineHeight: 1.65 }}>{uc.desc}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Business Impact */}
+      {/* ── IMPACT ─────────────────────────────────────────────────── */}
       <section
         id="impact"
-        ref={impactRef}
-        className="py-24 px-6"
-        style={{ background: 'var(--color-surface)' }}
+        ref={impRef}
+        style={{ padding: '110px 32px', background: '#060c18' }}
       >
-        <div className="max-w-7xl mx-auto">
-          <SectionHeader
-            visible={impactVisible}
-            tag="BUSINESS IMPACT"
-            title="Measurable Outcomes"
-            sub="Quantified improvements across operational reliability, efficiency, and team performance."
-          />
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 64, opacity: impVis ? 1 : 0, transform: impVis ? 'none' : 'translateY(20px)', transition: 'all 0.7s' }}>
+            <SectionLabel text="BUSINESS IMPACT" />
+            <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', fontWeight: 800, color: '#fff', marginBottom: 14 }}>
+              Measurable Outcomes
+            </h2>
+            <p style={{ color: 'rgba(140,175,200,0.7)', fontSize: 15, maxWidth: 480, margin: '0 auto' }}>
+              Quantified improvements across operational reliability, efficiency, and team performance.
+            </p>
+          </div>
 
-          <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mt-14 ${impactVisible ? 'stagger' : 'opacity-0'}`}>
-            {IMPACT_METRICS.map((metric) => (
-              <div
-                key={metric.label}
-                className="card-hover rounded-2xl p-6 flex flex-col items-center text-center"
-                style={{
-                  background: 'var(--color-surface-3)',
-                  border: '1px solid rgba(30,48,80,0.8)',
-                }}
-              >
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center text-xl mb-4"
-                  style={{
-                    background: 'rgba(0,212,255,0.1)',
-                    border: '1px solid rgba(0,212,255,0.25)',
-                    color: '#00d4ff',
-                  }}
-                >
-                  {metric.icon}
-                </div>
-                <div
-                  className="font-display font-bold mb-1"
-                  style={{ color: '#00d4ff', fontSize: '2rem', lineHeight: 1 }}
-                >
-                  {metric.value}
-                </div>
-                <div
-                  className="font-semibold mb-2"
-                  style={{ color: 'rgba(226,232,240,0.9)', fontSize: '0.8rem' }}
-                >
-                  {metric.label}
-                </div>
-                <div style={{ color: 'rgba(122,155,191,0.65)', fontSize: '0.72rem' }}>
-                  {metric.sub}
-                </div>
-              </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 18 }}>
+            {METRICS.map((m, i) => (
+              <MetricCard key={m.label} metric={m} visible={impVis} delay={i * 0.09} />
             ))}
           </div>
         </div>
       </section>
 
-      {/* Chat Interface */}
-      <section
-        className="py-24 px-6"
-        style={{ background: 'var(--color-surface-2)' }}
-      >
-        <div className="max-w-4xl mx-auto">
-          <SectionHeader
-            visible={true}
-            tag="INTERACTIVE INTERFACE"
-            title="Ask NEXUS"
-            sub="Interact directly with the CloudOps NEXUS AI operations interface."
-          />
+      {/* ── CHAT ───────────────────────────────────────────────────── */}
+      <section style={{ padding: '110px 32px', background: 'linear-gradient(180deg, #060c18 0%, #080f1e 100%)' }}>
+        <div style={{ maxWidth: 860, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 48 }}>
+            <SectionLabel text="INTERACTIVE INTERFACE" />
+            <h2 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', fontWeight: 800, color: '#fff', marginBottom: 12 }}>
+              Ask NEXUS
+            </h2>
+            <p style={{ color: 'rgba(140,175,200,0.65)', fontSize: 15 }}>
+              Interact with the CloudOps NEXUS AI operations interface.
+            </p>
+          </div>
 
-          <div
-            className="mt-10 rounded-2xl overflow-hidden"
-            style={{
-              border: '1px solid rgba(0,212,255,0.2)',
-              background: 'var(--color-surface-3)',
-            }}
-          >
-            {/* Terminal header */}
-            <div
-              className="flex items-center justify-between px-5 py-3.5"
-              style={{
-                background: 'rgba(0,212,255,0.05)',
-                borderBottom: '1px solid rgba(30,48,80,0.8)',
-              }}
-            >
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full pulse-dot" style={{ background: '#00ff88' }} />
-                <span style={{ color: '#00d4ff', fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.1em' }}>
+          {/* Terminal window */}
+          <div style={{
+            borderRadius: 18, overflow: 'hidden',
+            border: '1px solid rgba(0,200,240,0.18)',
+            background: 'rgba(6,10,20,0.95)',
+            boxShadow: '0 0 60px rgba(0,200,240,0.06)',
+          }}>
+            {/* Title bar */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '12px 20px',
+              background: 'rgba(0,200,240,0.04)',
+              borderBottom: '1px solid rgba(0,200,240,0.1)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#00e882', display: 'inline-block', animation: 'pulse-hdr 2s infinite' }} />
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: 'rgba(0,200,240,0.75)' }}>
                   NEXUS OPERATIONS TERMINAL
                 </span>
               </div>
-              <span style={{ color: 'rgba(122,155,191,0.5)', fontSize: '0.7rem' }}>v2.4.1</span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <HexBadge label="DEMO MODE" active />
+                <HexBadge label="v2.4.1" />
+              </div>
             </div>
 
-            {/* Chat messages */}
+            {/* Messages */}
             <div
               ref={chatRef}
-              className="p-5 min-h-48 max-h-80 overflow-y-auto space-y-4"
-              style={{ scrollBehavior: 'smooth' }}
+              style={{ padding: '20px 24px', minHeight: 240, maxHeight: 360, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}
             >
-              {chatMessages.length === 0 && (
-                <div className="text-center py-6">
-                  <p style={{ color: 'rgba(122,155,191,0.5)', fontSize: '0.85rem' }}>
+              {messages.length === 0 && (
+                <div style={{ textAlign: 'center', paddingTop: 20 }}>
+                  <p style={{ color: 'rgba(100,140,170,0.5)', fontSize: 13, marginBottom: 20 }}>
                     NEXUS is ready. Submit a query to begin.
                   </p>
-                  <div className="flex flex-wrap justify-center gap-2 mt-4">
-                    {CHAT_SUGGESTIONS.map((s) => (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+                    {CHAT_SUGGESTIONS.map(s => (
                       <button
                         key={s}
-                        onClick={() => handleQuery(s)}
-                        className="px-3 py-1.5 rounded-lg text-xs transition-all duration-200"
+                        onClick={() => sendMessage(s)}
                         style={{
-                          background: 'rgba(0,212,255,0.06)',
-                          border: '1px solid rgba(0,212,255,0.2)',
-                          color: 'rgba(0,212,255,0.7)',
+                          padding: '7px 14px', borderRadius: 7, fontSize: 12, cursor: 'pointer',
+                          background: 'rgba(0,200,240,0.06)', border: '1px solid rgba(0,200,240,0.18)',
+                          color: 'rgba(0,200,240,0.7)', fontFamily: 'inherit', transition: 'all 0.2s',
                         }}
-                        onMouseEnter={e => {
-                          (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0,212,255,0.12)'
-                        }}
-                        onMouseLeave={e => {
-                          (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0,212,255,0.06)'
-                        }}
+                        onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0,200,240,0.12)'; (e.currentTarget as HTMLButtonElement).style.color = '#00c8f0' }}
+                        onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0,200,240,0.06)'; (e.currentTarget as HTMLButtonElement).style.color = 'rgba(0,200,240,0.7)' }}
                       >
                         {s}
                       </button>
@@ -720,192 +742,273 @@ export default function App() {
                 </div>
               )}
 
-              {chatMessages.map((msg, i) => (
-                <div
-                  key={i}
-                  className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
-                >
-                  <div
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
-                    style={{
-                      background: msg.role === 'nexus'
-                        ? 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,255,136,0.1))'
-                        : 'rgba(255,255,255,0.08)',
-                      border: msg.role === 'nexus'
-                        ? '1px solid rgba(0,212,255,0.3)'
-                        : '1px solid rgba(255,255,255,0.1)',
-                      color: msg.role === 'nexus' ? '#00d4ff' : 'rgba(226,232,240,0.8)',
-                    }}
-                  >
+              {messages.map((msg, i) => (
+                <div key={i} style={{ display: 'flex', gap: 12, flexDirection: msg.role === 'user' ? 'row-reverse' : 'row' }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 8, flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 11, fontWeight: 800,
+                    background: msg.role === 'nexus' ? 'rgba(0,200,240,0.12)' : 'rgba(255,255,255,0.07)',
+                    border: `1px solid ${msg.role === 'nexus' ? 'rgba(0,200,240,0.3)' : 'rgba(255,255,255,0.12)'}`,
+                    color: msg.role === 'nexus' ? '#00c8f0' : 'rgba(200,220,240,0.7)',
+                    fontFamily: "'Space Grotesk', sans-serif",
+                  }}>
                     {msg.role === 'nexus' ? 'NX' : 'U'}
                   </div>
-                  <div
-                    className="max-w-xl rounded-xl px-4 py-3"
-                    style={{
-                      background: msg.role === 'nexus'
-                        ? 'rgba(0,212,255,0.05)'
-                        : 'rgba(255,255,255,0.04)',
-                      border: msg.role === 'nexus'
-                        ? '1px solid rgba(0,212,255,0.15)'
-                        : '1px solid rgba(255,255,255,0.08)',
-                      color: 'rgba(226,232,240,0.85)',
-                      fontSize: '0.85rem',
-                      lineHeight: 1.65,
-                      whiteSpace: 'pre-wrap',
-                    }}
-                  >
+                  <div style={{
+                    maxWidth: 600, padding: '12px 16px', borderRadius: 12,
+                    background: msg.role === 'nexus' ? 'rgba(0,200,240,0.05)' : 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${msg.role === 'nexus' ? 'rgba(0,200,240,0.14)' : 'rgba(255,255,255,0.08)'}`,
+                    color: 'rgba(200,220,240,0.85)',
+                    fontSize: 13.5, lineHeight: 1.7,
+                    whiteSpace: 'pre-wrap',
+                  }}>
                     {msg.text}
                   </div>
                 </div>
               ))}
 
-              {isTyping && (
-                <div className="flex gap-3">
-                  <div
-                    className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold"
-                    style={{
-                      background: 'linear-gradient(135deg, rgba(0,212,255,0.2), rgba(0,255,136,0.1))',
-                      border: '1px solid rgba(0,212,255,0.3)',
-                      color: '#00d4ff',
-                    }}
-                  >
-                    NX
-                  </div>
-                  <div
-                    className="rounded-xl px-4 py-3 flex items-center gap-1.5"
-                    style={{
-                      background: 'rgba(0,212,255,0.05)',
-                      border: '1px solid rgba(0,212,255,0.15)',
-                    }}
-                  >
+              {typing && (
+                <div style={{ display: 'flex', gap: 12 }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 8,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'rgba(0,200,240,0.12)', border: '1px solid rgba(0,200,240,0.3)',
+                    color: '#00c8f0', fontSize: 11, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif",
+                  }}>NX</div>
+                  <div style={{
+                    padding: '12px 18px', borderRadius: 12,
+                    background: 'rgba(0,200,240,0.05)', border: '1px solid rgba(0,200,240,0.14)',
+                    display: 'flex', alignItems: 'center', gap: 5,
+                  }}>
                     {[0, 1, 2].map(d => (
-                      <div
-                        key={d}
-                        className="w-1.5 h-1.5 rounded-full"
-                        style={{
-                          background: '#00d4ff',
-                          animation: `blink 1.2s ease-in-out ${d * 0.2}s infinite`,
-                        }}
-                      />
+                      <span key={d} style={{
+                        width: 7, height: 7, borderRadius: '50%', background: '#00c8f0', display: 'inline-block',
+                        animation: `blink 1.2s ${d * 0.22}s ease-in-out infinite`,
+                      }} />
                     ))}
                   </div>
                 </div>
               )}
+              <div ref={chatEndRef} />
             </div>
 
             {/* Input */}
-            <div
-              className="px-5 pb-5 pt-3"
-              style={{ borderTop: '1px solid rgba(30,48,80,0.6)' }}
-            >
-              <div className="flex gap-3">
-                <input
-                  type="text"
-                  value={query}
-                  onChange={e => setQuery(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleQuery(query)}
-                  placeholder="Ask CloudOps NEXUS anything..."
-                  className="nexus-input flex-1 px-4 py-3 rounded-xl text-sm transition-all duration-200"
-                  style={{
-                    background: 'rgba(10,15,30,0.8)',
-                    border: '1px solid rgba(30,48,80,0.8)',
-                    color: 'rgba(226,232,240,0.9)',
-                    outline: 'none',
-                  }}
-                />
-                <button
-                  onClick={() => handleQuery(query)}
-                  className="px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-200 flex-shrink-0"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(0,212,255,0.25), rgba(0,212,255,0.1))',
-                    border: '1px solid rgba(0,212,255,0.4)',
-                    color: '#00d4ff',
-                  }}
-                  onMouseEnter={e => {
-                    (e.currentTarget as HTMLButtonElement).style.background = 'linear-gradient(135deg, rgba(0,212,255,0.35), rgba(0,212,255,0.2))'
-                  }}
-                  onMouseLeave={e => {
-                    (e.currentTarget as HTMLButtonElement).style.background = 'linear-gradient(135deg, rgba(0,212,255,0.25), rgba(0,212,255,0.1))'
-                  }}
-                >
-                  Submit
-                </button>
-              </div>
+            <div style={{
+              padding: '16px 20px',
+              borderTop: '1px solid rgba(0,200,240,0.08)',
+              display: 'flex', gap: 12, alignItems: 'center',
+            }}>
+              <input
+                type="text"
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && sendMessage(chatInput)}
+                placeholder="Ask CloudOps NEXUS anything..."
+                style={{
+                  flex: 1, padding: '11px 16px', borderRadius: 9, fontSize: 13.5,
+                  background: 'rgba(4,8,18,0.9)',
+                  border: '1px solid rgba(0,200,240,0.18)',
+                  color: 'rgba(200,220,240,0.9)', fontFamily: 'inherit', outline: 'none',
+                  transition: 'border-color 0.2s, box-shadow 0.2s',
+                }}
+                onFocus={e => { (e.target as HTMLInputElement).style.borderColor = 'rgba(0,200,240,0.5)'; (e.target as HTMLInputElement).style.boxShadow = '0 0 0 3px rgba(0,200,240,0.07)' }}
+                onBlur={e => { (e.target as HTMLInputElement).style.borderColor = 'rgba(0,200,240,0.18)'; (e.target as HTMLInputElement).style.boxShadow = 'none' }}
+                disabled={typing}
+              />
+              <button
+                onClick={() => sendMessage(chatInput)}
+                disabled={typing || !chatInput.trim()}
+                style={{
+                  padding: '11px 22px', borderRadius: 9, fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                  background: 'linear-gradient(135deg, rgba(0,200,240,0.22), rgba(0,200,240,0.1))',
+                  border: '1px solid rgba(0,200,240,0.4)', color: '#00c8f0',
+                  fontFamily: 'inherit', transition: 'all 0.2s', whiteSpace: 'nowrap',
+                  opacity: typing || !chatInput.trim() ? 0.5 : 1,
+                }}
+              >
+                Submit
+              </button>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer
-        className="py-8 px-6"
-        style={{
-          background: 'var(--color-surface)',
-          borderTop: '1px solid rgba(30,48,80,0.6)',
-        }}
-      >
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold"
-              style={{
-                background: 'rgba(0,212,255,0.1)',
-                border: '1px solid rgba(0,212,255,0.25)',
-                color: '#00d4ff',
-              }}
-            >
-              NX
-            </div>
-            <span style={{ color: 'rgba(122,155,191,0.6)', fontSize: '0.8rem' }}>
-              CloudOps NEXUS — Enterprise AI Operations Platform
-            </span>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full pulse-dot" style={{ background: '#00ff88' }} />
-              <span style={{ color: 'rgba(122,155,191,0.5)', fontSize: '0.72rem' }}>All systems operational</span>
-            </div>
-          </div>
+      {/* ── FOOTER ─────────────────────────────────────────────────── */}
+      <footer style={{
+        borderTop: '1px solid rgba(0,200,240,0.08)',
+        padding: '28px 32px',
+        background: '#060c18',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        flexWrap: 'wrap', gap: 16,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(0,200,240,0.1)', border: '1px solid rgba(0,200,240,0.25)',
+            color: '#00c8f0', fontSize: 12, fontWeight: 800, fontFamily: "'Space Grotesk', sans-serif",
+          }}>N</div>
+          <span style={{ color: 'rgba(120,155,185,0.5)', fontSize: 12 }}>
+            CloudOps NEXUS — Enterprise AI Operations Platform
+          </span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#00e882', display: 'inline-block', animation: 'pulse-hdr 2s infinite' }} />
+          <span style={{ color: 'rgba(120,155,185,0.45)', fontSize: 11 }}>All systems operational</span>
         </div>
       </footer>
+
+      {/* ── GLOBAL STYLES ──────────────────────────────────────────── */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+        *, *::before, *::after { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body { margin: 0; -webkit-font-smoothing: antialiased; }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: #060c18; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,200,240,0.2); border-radius: 3px; }
+
+        @keyframes pulse-hdr {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.45; }
+        }
+
+        @keyframes sweep {
+          0% { top: -2px; }
+          100% { top: 100vh; }
+        }
+
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(28px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0.2; }
+        }
+      `}</style>
     </div>
   )
 }
 
-function SectionHeader({
-  visible,
-  tag,
-  title,
-  sub,
-}: {
-  visible: boolean
-  tag: string
-  title: string
-  sub: string
-}) {
+// ─── Capability Card ─────────────────────────────────────────────────────────
+
+function CapabilityCard({ cap, visible, delay }: { cap: typeof CAPABILITIES[0]; visible: boolean; delay: number }) {
+  const [hovered, setHovered] = useState(false)
+
   return (
-    <div className={`text-center ${visible ? 'fade-in-up' : 'opacity-0'}`}>
-      <div
-        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-4"
-        style={{
-          background: 'rgba(0,212,255,0.06)',
-          border: '1px solid rgba(0,212,255,0.15)',
-        }}
-      >
-        <div className="w-1 h-1 rounded-full" style={{ background: '#00d4ff' }} />
-        <span style={{ color: '#00d4ff', fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.12em' }}>
-          {tag}
-        </span>
+    <div
+      style={{
+        position: 'relative', borderRadius: 14, padding: '24px 24px 22px',
+        background: hovered ? `rgba(${cap.color === '#00c8f0' ? '0,200,240' : cap.color === '#00e882' ? '0,232,130' : '245,158,11'},0.04)` : 'rgba(8,15,30,0.7)',
+        border: `1px solid ${hovered ? `${cap.color}35` : 'rgba(0,200,240,0.08)'}`,
+        transition: 'all 0.3s ease',
+        transform: visible ? (hovered ? 'translateY(-5px)' : 'none') : 'translateY(20px)',
+        opacity: visible ? 1 : 0,
+        transitionDelay: `${delay}s`,
+        boxShadow: hovered ? `0 12px 40px rgba(0,0,0,0.3), 0 0 24px ${cap.color}12` : 'none',
+        cursor: 'default',
+        overflow: 'hidden',
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Top accent line */}
+      <div style={{
+        position: 'absolute', top: 0, left: 20, right: 20, height: 1,
+        background: `linear-gradient(90deg, transparent, ${cap.color}50, transparent)`,
+        opacity: hovered ? 1 : 0.4, transition: 'opacity 0.3s',
+      }} />
+
+      {/* ID + tag row */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{
+          width: 42, height: 42, borderRadius: 10, flexShrink: 0,
+          background: `${cap.color}12`, border: `1px solid ${cap.color}28`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: cap.color, fontSize: 18,
+          boxShadow: hovered ? `0 0 18px ${cap.color}25` : 'none',
+          transition: 'box-shadow 0.3s',
+        }}>
+          {cap.icon}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ color: 'rgba(80,120,150,0.5)', fontSize: 11, fontFamily: "'JetBrains Mono', monospace", fontWeight: 500 }}>
+            [{cap.id}]
+          </span>
+          <span style={{
+            padding: '2px 8px', borderRadius: 4, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
+            background: `${cap.color}0e`, border: `1px solid ${cap.color}22`, color: cap.color,
+          }}>
+            {cap.tag}
+          </span>
+        </div>
       </div>
-      <h2
-        className="font-display font-bold mb-4"
-        style={{ color: 'rgba(226,232,240,0.95)', fontSize: 'clamp(1.6rem, 4vw, 2.4rem)' }}
-      >
-        {title}
-      </h2>
-      <p style={{ color: 'rgba(122,155,191,0.75)', fontSize: '0.95rem', maxWidth: 560, margin: '0 auto' }}>
-        {sub}
+
+      <h3 style={{
+        fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700,
+        fontSize: 15, color: '#e8f2fa', marginBottom: 10, lineHeight: 1.3,
+      }}>
+        {cap.title}
+      </h3>
+      <p style={{ color: 'rgba(130,168,198,0.75)', fontSize: 13, lineHeight: 1.7 }}>
+        {cap.desc}
       </p>
+    </div>
+  )
+}
+
+// ─── Metric Card ─────────────────────────────────────────────────────────────
+
+function MetricCard({ metric, visible, delay }: { metric: typeof METRICS[0]; visible: boolean; delay: number }) {
+  const [hovered, setHovered] = useState(false)
+
+  return (
+    <div
+      style={{
+        position: 'relative', borderRadius: 14, padding: '28px 20px 24px',
+        textAlign: 'center',
+        background: hovered ? 'rgba(0,200,240,0.05)' : 'rgba(8,15,30,0.7)',
+        border: `1px solid ${hovered ? 'rgba(0,200,240,0.3)' : 'rgba(0,200,240,0.08)'}`,
+        transition: 'all 0.3s ease',
+        transform: visible ? (hovered ? 'translateY(-6px)' : 'none') : 'translateY(20px)',
+        opacity: visible ? 1 : 0,
+        transitionDelay: `${delay}s`,
+        boxShadow: hovered ? '0 16px 40px rgba(0,0,0,0.3), 0 0 20px rgba(0,200,240,0.1)' : 'none',
+        cursor: 'default',
+        overflow: 'hidden',
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <CornerFrame color={hovered ? 'rgba(0,200,240,0.5)' : 'rgba(0,200,240,0.2)'} size={12} />
+
+      <div style={{
+        width: 44, height: 44, borderRadius: 11, margin: '0 auto 16px',
+        background: 'rgba(0,200,240,0.09)', border: '1px solid rgba(0,200,240,0.22)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: '#00c8f0', fontSize: 18,
+        boxShadow: hovered ? '0 0 20px rgba(0,200,240,0.2)' : 'none', transition: 'box-shadow 0.3s',
+      }}>
+        {metric.icon}
+      </div>
+
+      <div style={{
+        fontFamily: "'Space Grotesk', sans-serif", fontWeight: 800, fontSize: 36,
+        color: '#00c8f0', lineHeight: 1, marginBottom: 8,
+        textShadow: hovered ? '0 0 20px rgba(0,200,240,0.4)' : 'none',
+      }}>
+        {metric.value}
+      </div>
+      <div style={{ fontWeight: 600, fontSize: 12.5, color: 'rgba(200,220,240,0.85)', marginBottom: 5 }}>
+        {metric.label}
+      </div>
+      <div style={{ fontSize: 11, color: 'rgba(100,140,170,0.6)' }}>
+        {metric.sub}
+      </div>
     </div>
   )
 }
