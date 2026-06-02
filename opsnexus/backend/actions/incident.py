@@ -54,8 +54,8 @@ If the incident is not resolved within 1 hour:
 - Notify leadership if customer-facing impact is confirmed
 
 ---
-⚠️ **All remediation actions require human approval before execution.**
-🔒 *This report is a draft — update with actual findings before distributing.*"""
+ **All remediation actions require approval before execution.**
+ *This report is a draft — update with actual findings before distributing.*"""
 
     return {
         "summary": f"Incident report draft generated for {environment} environment",
