@@ -44,8 +44,8 @@ If the issue persists after two retries, escalate to the DevOps team. Include:
 A Jenkins pipeline failure was detected in the **{environment.upper()}** environment for job **{data['job_name']}**. The probable cause has been identified and troubleshooting steps have been documented. No production changes will be made without human approval.
 
 ---
-⚠️ **Human approval required before any production execution.**
-🔒 *Demo mode — no real Jenkins commands have been executed.*"""
+ **approval required before any production execution.**
+ *Demo mode — no real Jenkins commands have been executed.*"""
 
     return {
         "summary": f"Jenkins build failure analysis for {data['job_name']}",
