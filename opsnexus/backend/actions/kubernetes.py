@@ -53,9 +53,8 @@ Review `kubectl describe pod` output for:
 - Do NOT delete pods manually in production
 - Document findings and escalate to the platform engineering team with the describe output and recent logs
 
----
-⚠️ **Human approval required before any pod restart or configuration change.**
-🔒 *Demo mode — no real kubectl commands have been executed.*"""
+ **approval required before any pod restart or configuration change.**
+ *Demo mode — no real kubectl commands have been executed.*"""
 
     return {
         "summary": f"Kubernetes pod diagnostic for {data['pod_name']} in {data['namespace']}",
