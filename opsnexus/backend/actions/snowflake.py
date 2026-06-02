@@ -44,14 +44,14 @@ GRANT SELECT ON FUTURE TABLES IN SCHEMA {data['database']}.{data['schema']} TO R
 - [ ] Check if this role should be added to a role hierarchy
 
 ### Database / Schema Confirmation Warning
-> ⚠️ Before executing any GRANT statements, confirm the database and schema names are correct for the **{environment.upper()}** environment. Granting permissions in the wrong environment is not easily reversible.
+>  Before executing any GRANT statements, confirm the database and schema names are correct for the **{environment.upper()}** environment. Granting permissions in the wrong environment is not easily reversible.
 
 ### Approval Note
 All Snowflake permission changes require approval from the data platform owner before execution.
 
 ---
-⚠️ **Human approval required before production execution.**
-🔒 *Demo mode — no real Snowflake commands have been executed.*"""
+ ** approval required before production execution.**
+ *Demo mode — no real Snowflake commands have been executed.*"""
 
     return {
         "summary": f"Snowflake permission analysis for role {data['role']}",
