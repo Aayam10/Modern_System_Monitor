@@ -51,8 +51,8 @@ AzureDiagnostics
 5. Verify downstream dependencies after successful completion
 
 ---
-⚠️ **Human approval required before production execution.**
-🔒 *Demo mode — no real ADF commands have been executed.*"""
+ **approval required before production execution.**
+ *Demo mode — no real ADF commands have been executed.*"""
 
     return {
         "summary": f"ADF pipeline analysis for {data['pipeline_name']}",
