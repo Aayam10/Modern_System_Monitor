@@ -49,8 +49,8 @@ terraform show tfplan.binary
 ```
 
 ---
-⚠️ **Human approval required before terraform apply in any environment.**
-🔒 *Demo mode — no real Terraform commands have been executed.*"""
+ **Human approval required before terraform apply in any environment.**
+ *Demo mode — no real Terraform commands have been executed.*"""
 
     return {
         "summary": "Terraform plan review checklist and approval guidance",
