@@ -42,8 +42,8 @@ If the deployment issue persists after the above checks, escalate to the BI plat
 - Error message from Tableau Server logs
 
 ---
-⚠️ **Human approval required before any production Tableau changes.**
-🔒 *Demo mode — no real Tableau Server commands have been executed.*"""
+ ** approval required before any production Tableau changes.**
+ *Demo mode — no real Tableau Server commands have been executed.*"""
 
     return {
         "summary": "Tableau deployment validation and troubleshooting guidance",
