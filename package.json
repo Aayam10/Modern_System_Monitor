@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "desktop": "concurrently -k \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
+    "desktop": "concurrently -k \"vite --host 127.0.0.1 --port 5173 --strictPort\" \"wait-on http://localhost:5173 && electron .\"",
     "desktop:prod": "npm run build && electron ."
   },
   "keywords": [],
