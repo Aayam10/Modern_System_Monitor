@@ -7,7 +7,7 @@ from __future__ import annotations
 from fastapi import APIRouter
 from app.core.schemas import (
     ChatRequest, ChatResponse, LiveStartResponse, LiveStopResponse,
-    StateResponse, ApprovalResponse, MemoryResponse,
+    StateResponse, ApprovalResponse, MemoryResponse, KillRequest,
 )
 from app.agent.router import route_message
 from app.actions.system import get_system_status
@@ -115,7 +115,11 @@ def approve():
         return ApprovalResponse(reply="No pending action.", action="no_pending")
     if pending.startswith("kill_pid_"):
         result = execute_approved_kill()
-        return ApprovalResponse(**result)
+        return ApprovalResponse(
+            reply=result.get("reply", ""),
+            action=result.get("action", "approved"),
+            data=result.get("data"),
+        )
     clear_pending()
     return ApprovalResponse(reply="Action approved.", action="approved")
 
@@ -167,6 +171,17 @@ def system_metrics():
 def processes(sort_by: str = "cpu", limit: int = 30):
     result = list_processes(sort_by=sort_by, limit=limit)
     return result.get("data", {"processes": []})
+
+
+@router.post("/process/kill")
+def process_kill(req: KillRequest):
+    """Kill request from UI process panel — always requires approval."""
+    from app.actions.processes import request_kill
+    result = request_kill(pid=req.pid, name=req.name)
+    if result.get("requires_approval"):
+        from app.core.approvals import set_pending
+        set_pending(result.get("pending_action", ""))
+    return result
 
 
 # ── Memory ────────────────────────────────────────────────────────────────────

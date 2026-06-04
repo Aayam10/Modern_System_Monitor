@@ -33,7 +33,7 @@ const API_BASE = 'http://localhost:8000'
 const AUTO_SEND_VOICE = false
 
 type Role     = 'user' | 'jarvis' | 'file' | 'err' | 'sys'
-type HudState = 'INITIALISING' | 'LISTENING' | 'SPEAKING' | 'THINKING' | 'PROCESSING' | 'MUTED' | 'OFFLINE'
+type HudState = 'INITIALISING' | 'LISTENING' | 'SPEAKING' | 'THINKING' | 'PROCESSING' | 'MUTED' | 'OFFLINE' | 'ERROR'
 type LiveStatus = 'OFFLINE' | 'CONNECTING' | 'LISTENING' | 'SPEAKING' | 'ERROR'
 
 interface LogLine { id: string; text: string; fullText: string; color: string }
@@ -241,6 +241,7 @@ function HudCanvas({ hudState, muted }: { hudState: HudState; muted: boolean }) 
       else if (st==='PROCESSING')     { stTxt=(blink?'▷':'▶')+' PROCESSING';     stCol=C.ACC2 }
       else if (st==='LISTENING')      { stTxt=(blink?'●':'○')+' LISTENING';      stCol=C.GREEN }
       else if (st==='OFFLINE')        { stTxt=(blink?'●':'○')+' OFFLINE';        stCol=C.RED }
+      else if (st==='ERROR')          { stTxt=(blink?'✕':'✗')+' ERROR';          stCol=C.RED }
       else                            { stTxt=(blink?'●':'○')+' '+st;            stCol=C.PRI }
       ctx.save()
       ctx.font='bold 11px "Courier New",monospace'; ctx.textAlign='center'; ctx.textBaseline='top'
@@ -527,20 +528,24 @@ export default function App() {
     return () => { clearInterval(t); clearInterval(poll); if(intervalRef.current) clearInterval(intervalRef.current); recRef.current?.abort() }
   }, [])
 
-  // live voice state polling
+  // live voice log polling — always polls, only appends when live session is running
   useEffect(() => {
-    if (!liveRunRef.current) return
     const pollLogs = setInterval(async () => {
+      if (!liveRunRef.current) return
       try {
         const r = await fetch(`${API_BASE}/api/live/logs`); if (!r.ok) return
         const d = await r.json()
         if (d.logs && Array.isArray(d.logs)) {
-          d.logs.forEach((log: string) => appendLog(log, 'sys'))
+          d.logs.forEach((log: string) => {
+            const role: Role = log.startsWith('ERR:') ? 'err' : log.startsWith('Jarvis:') ? 'jarvis' : log.startsWith('You:') ? 'user' : 'sys'
+            appendLog(log, role)
+          })
         }
       } catch { /* silent */ }
     }, 2000)
     return () => clearInterval(pollLogs)
-  }, [liveRunning])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // live state polling
   useEffect(() => {
@@ -548,7 +553,8 @@ export default function App() {
       try {
         const r = await fetch(`${API_BASE}/api/live/state`); if (!r.ok) return
         const d = await r.json()
-        if (d.status) setLiveStatus(d.status)
+        if (d.state) setLiveStatus(d.state as LiveStatus)
+        if (d.state) setHudState(d.state as HudState)
       } catch { /* silent */ }
     }, 3000)
     return () => clearInterval(pollState)
@@ -656,26 +662,31 @@ export default function App() {
         await fetch(`${API_BASE}/api/live/stop`, { method: 'POST' })
         setLiveRunning(false)
         setLiveStatus('OFFLINE')
+        setHudState('OFFLINE')
         appendLog('SYS: Live voice stopped.', 'sys')
       } catch {
         appendLog('ERR: Failed to stop live voice.', 'err')
       }
     } else {
       try {
-        setLiveRunning(true)
         setLiveStatus('CONNECTING')
+        appendLog('SYS: Connecting live voice engine…', 'sys')
         const r = await fetch(`${API_BASE}/api/live/start`, { method: 'POST' })
-        if (r.ok) {
+        const d = r.ok ? await r.json() : null
+        if (d && d.ok) {
+          setLiveRunning(true)
           setLiveStatus('LISTENING')
-          appendLog('SYS: Live voice started.', 'sys')
+          setHudState('LISTENING')
+          appendLog('SYS: Live voice engine started.', 'sys')
         } else {
-          setLiveRunning(false)
           setLiveStatus('ERROR')
-          appendLog('ERR: Failed to start live voice.', 'err')
+          setHudState('ERROR')
+          const reason = d?.reason || 'Unknown error'
+          appendLog(`ERR: Live voice failed — ${reason}`, 'err')
         }
       } catch {
-        setLiveRunning(false)
         setLiveStatus('ERROR')
+        setHudState('ERROR')
         appendLog('ERR: Live voice connection failed.', 'err')
       }
     }
@@ -701,11 +712,17 @@ export default function App() {
 
   async function killProcess(pid: number) {
     try {
-      await fetch(`${API_BASE}/api/process/kill`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pid }) })
-      appendLog(`SYS: Process ${pid} killed.`, 'sys')
+      const r = await fetch(`${API_BASE}/api/process/kill`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pid }) })
+      if (!r.ok) throw new Error()
+      const d = await r.json()
+      if (d.requires_approval && d.pending_action) {
+        setPendingApproval(d.reply || `Approve kill PID ${pid}?`)
+      } else {
+        appendLog(d.reply || `SYS: Process ${pid} kill requested.`, 'sys')
+      }
       await fetchProcesses()
     } catch {
-      appendLog(`ERR: Failed to kill process ${pid}.`, 'err')
+      appendLog(`ERR: Failed to request kill for PID ${pid}.`, 'err')
     }
   }
 
@@ -783,7 +800,7 @@ export default function App() {
             <div style={{ fontFamily:'"Courier New"', fontSize:8, color:C.ACC2 }}>OS {metrics.os}</div>
           </div>
           <div style={{ flex:1 }} />
-          {([['AI CORE\nACTIVE',C.GREEN],['SEC\nCLEARED',C.PRI],['PROTOCOL\nXXXVIII',C.TEXT_DIM]] as [string,string][]).map(([txt,col])=>(
+          {([['AI CORE\nACTIVE',C.GREEN],['SEC\nCLEARED',C.PRI],['AAYAM\nSYSTEM',C.TEXT_DIM]] as [string,string][]).map(([txt,col])=>(
             <div key={txt} style={{ fontFamily:'"Courier New"', fontSize:7, fontWeight:700, color:col, textAlign:'center', whiteSpace:'pre', letterSpacing:'0.08em', lineHeight:'1.6', background:C.PANEL2, border:`1px solid ${C.BORDER_A}`, borderRadius:3, padding:'4px', textShadow:`0 0 6px ${col}`, flexShrink:0 }}>{txt}</div>
           ))}
         </div>
@@ -915,14 +932,14 @@ export default function App() {
         {liveRunning && <span style={{ fontFamily:'"Courier New"', fontSize:7, color:C.GREEN, letterSpacing:'0.08em', fontWeight:700 }}>● LIVE</span>}
         {pendingApproval && <span style={{ fontFamily:'"Courier New"', fontSize:7, color:C.ACC2, letterSpacing:'0.08em', fontWeight:700 }}>⚠ APPROVAL</span>}
         <div style={{ flex:1 }} />
-        <span style={{ fontFamily:'"Courier New"', fontSize:7, color:C.PRI_DIM, letterSpacing:'0.08em' }}>© STARK INDUSTRIES</span>
+        <span style={{ fontFamily:'"Courier New"', fontSize:7, color:C.PRI_DIM, letterSpacing:'0.08em' }}>AAYAM INDUSTRIES</span>
       </div>
 
       {/* ── FOOTER 22px ── */}
       <div style={{ height:FOOTER_H, flexShrink:0, background:C.DARK, borderTop:`1px solid ${C.BORDER}`, display:'flex', alignItems:'center', padding:'0 14px' }}>
         <span style={{ fontFamily:'"Courier New"', fontSize:7, color:C.TEXT_MED, letterSpacing:'0.08em' }}>[F4] Mute · [F11] Fullscreen · [P] Processes</span>
         <div style={{ flex:1 }} />
-        <span style={{ fontFamily:'"Courier New"', fontSize:7, color:C.TEXT_MED, letterSpacing:'0.06em' }}>J.A.R.V.I.S · MARK XXXIX · CLASSIFIED</span>
+        <span style={{ fontFamily:'"Courier New"', fontSize:7, color:C.TEXT_MED, letterSpacing:'0.06em' }}>J.A.R.V.I.S · AAYAM · CLASSIFIED</span>
       </div>
 
       {/* ── Floating Processes Panel ── */}

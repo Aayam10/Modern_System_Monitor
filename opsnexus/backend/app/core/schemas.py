@@ -47,10 +47,17 @@ class ProcessListResponse(BaseModel):
     count: int
 
 
+class KillRequest(BaseModel):
+    pid: Optional[int] = None
+    name: Optional[str] = None
+
+
 class ApprovalResponse(BaseModel):
     reply: str
     action: str
     data: Optional[dict[str, Any]] = None
+    requires_approval: Optional[bool] = None
+    pending_action: Optional[str] = None
 
 
 class MemoryResponse(BaseModel):

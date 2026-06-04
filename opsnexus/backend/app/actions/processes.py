@@ -65,7 +65,7 @@ def top_cpu(limit: int = 5) -> list[dict]:
 
 
 def top_memory(limit: int = 5) -> list[dict]:
-    result = list_processes(sort_by="memory", limit=limit)
+    result = list_processes(sort_by="mem", limit=limit)
     return result.get("data", {}).get("processes", [])
 
 

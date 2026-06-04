@@ -223,9 +223,14 @@ class JarvisLive:
 
     def _build_config(self, types):
         from datetime import datetime
+        from app.memory.memory_manager import load_memory, format_memory_for_prompt
         prompt  = _load_prompt()
         now_str = datetime.now().strftime("%A, %B %d, %Y — %I:%M %p")
+        memory  = load_memory()
+        mem_str = format_memory_for_prompt(memory)
         system  = f"[CURRENT DATE & TIME]\nRight now it is: {now_str}\n\n{prompt}"
+        if mem_str:
+            system += f"\n\n{mem_str}"
 
         from app.core.tool_declarations import TOOL_DECLARATIONS
         return types.LiveConnectConfig(
@@ -255,10 +260,13 @@ class JarvisLive:
             with self._speaking_lock:
                 speaking = self.is_speaking
             if not speaking and not self.is_muted:
-                loop.call_soon_threadsafe(
-                    self.out_queue.put_nowait,
-                    {"data": indata.tobytes(), "mime_type": "audio/pcm"},
-                )
+                try:
+                    loop.call_soon_threadsafe(
+                        self.out_queue.put_nowait,
+                        {"data": indata.tobytes(), "mime_type": "audio/pcm"},
+                    )
+                except Exception:
+                    pass  # queue full — drop frame
 
         try:
             with sd.InputStream(
