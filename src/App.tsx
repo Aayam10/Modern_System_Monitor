@@ -28,14 +28,17 @@ const LEFT_W   = 148
 const RIGHT_W  = 340
 const HEADER_H = 54
 const FOOTER_H = 22
+const BOTTOM_STRIP_H = 18
 const API_BASE = 'http://localhost:8000'
 const AUTO_SEND_VOICE = false
 
 type Role     = 'user' | 'jarvis' | 'file' | 'err' | 'sys'
 type HudState = 'INITIALISING' | 'LISTENING' | 'SPEAKING' | 'THINKING' | 'PROCESSING' | 'MUTED' | 'OFFLINE'
+type LiveStatus = 'OFFLINE' | 'CONNECTING' | 'LISTENING' | 'SPEAKING' | 'ERROR'
 
 interface LogLine { id: string; text: string; fullText: string; color: string }
 interface SysMetrics { cpu: number; mem: number; net: number; gpu: number; tmp: number; uptime: string; procs: number; os: string }
+interface ProcessInfo { pid: number; name: string; status: string; cpu_percent: number; memory_percent: number }
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SR = any
 
@@ -273,7 +276,6 @@ function MetricBar({ label, value, text, color }: { label: string; value: number
     <div style={{ height:38, position:'relative', background:C.PANEL2, border:`1px solid ${C.BORDER_A}`, borderRadius:4, flexShrink:0 }}>
       <span style={{ position:'absolute', top:5, left:8, fontSize:7, fontWeight:700, color:C.TEXT_DIM, fontFamily:'"Courier New"', letterSpacing:'0.1em' }}>{label}</span>
       <span style={{ position:'absolute', top:4, right:6, fontSize:9, fontWeight:700, color:text==='--'?C.TEXT_DIM:col, fontFamily:'"Courier New"', textShadow:text!=='--'?`0 0 5px ${col}`:'none' }}>{text}</span>
-      {/* bar at bottom: y = H-bar_h-5 = 38-4-5 = 29px from top */}
       <div style={{ position:'absolute', top:29, left:6, right:6, height:4, background:C.BAR_BG, borderRadius:2 }}>
         <div style={{ height:4, width:`${Math.max(0,Math.min(100,value))}%`, background:col, borderRadius:2, boxShadow:`0 0 4px ${col}`, transition:'width 1.5s ease' }} />
       </div>
@@ -306,7 +308,6 @@ function FileDropZone({ onFile }: { onFile: (name: string, size: string) => void
   const [dashOff, setDashOff]   = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // animate dash offset every 40ms (mirrors QTimer at 40ms, += 0.8)
   useEffect(() => {
     const t = setInterval(() => setDashOff(d => (d + 0.8) % 20), 40)
     return () => clearInterval(t)
@@ -334,12 +335,10 @@ function FileDropZone({ onFile }: { onFile: (name: string, size: string) => void
       onDragLeave={() => setDragging(false)}
       onDrop={e => { e.preventDefault(); setDragging(false); const f=e.dataTransfer.files[0]; if(f) handleFile(f) }}
     >
-      {/* animated dashed SVG border */}
       <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%', pointerEvents:'none', overflow:'visible' }}>
         <rect x="6" y="6" width="calc(100% - 12)" height="calc(100% - 12)" rx="6" ry="6"
           fill={bgCol} stroke={borderCol} strokeWidth="1.5" strokeDasharray="4 4" strokeDashoffset={dashOff} />
       </svg>
-      {/* content layer */}
       <div style={{ position:'absolute', inset:6, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:5 }}>
         {file ? (
           <>
@@ -374,12 +373,80 @@ function FileDropZone({ onFile }: { onFile: (name: string, size: string) => void
   )
 }
 
-// ─── Section label (▸ LABEL) — mirrors _sec() in _build_right_panel ──────────
+// ─── Section label (▸ LABEL) ──────────────────────────────────────────────────
 function SLabel({ text }: { text: string }) {
   return <div style={{ fontFamily:'"Courier New"', fontSize:7, fontWeight:700, color:C.TEXT_MED, letterSpacing:'0.14em', flexShrink:0 }}>▸ {text}</div>
 }
 function Sep() {
   return <div style={{ height:1, background:C.BORDER, margin:'2px 0', flexShrink:0 }} />
+}
+
+// ─── ProcessesPanel — floating overlay for process management ────────────────
+function ProcessesPanel({
+  processes,
+  onClose,
+  onKill,
+  onRefresh
+}: {
+  processes: ProcessInfo[];
+  onClose: () => void;
+  onKill: (pid: number) => void;
+  onRefresh: () => void;
+}) {
+  return (
+    <div style={{
+      position: 'fixed',
+      bottom: FOOTER_H + BOTTOM_STRIP_H + 16,
+      right: RIGHT_W + 16,
+      width: 420,
+      maxHeight: 400,
+      background: C.PANEL,
+      border: `2px solid ${C.PRI}`,
+      borderRadius: 6,
+      display: 'flex',
+      flexDirection: 'column',
+      zIndex: 1000,
+      boxShadow: `0 0 16px ${rgba(C.PRI, 0.3)}`
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', borderBottom: `1px solid ${C.BORDER}`, flexShrink: 0 }}>
+        <div style={{ fontFamily: '"Courier New"', fontSize: 9, fontWeight: 700, color: C.PRI, letterSpacing: '0.08em' }}>PROCESSES</div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          <button onClick={onRefresh}
+            style={{ fontSize: 8, color: C.TEXT_MED, background: 'transparent', border: `1px solid ${C.TEXT_MED}`, borderRadius: 2, padding: '2px 6px', cursor: 'pointer', fontFamily: '"Courier New"', transition: 'all 0.15s' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = C.PRI; (e.currentTarget as HTMLElement).style.borderColor = C.PRI }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = C.TEXT_MED; (e.currentTarget as HTMLElement).style.borderColor = C.TEXT_MED }}>
+            ⟳ Refresh
+          </button>
+          <button onClick={onClose}
+            style={{ fontSize: 8, color: C.RED, background: 'transparent', border: `1px solid ${C.RED}`, borderRadius: 2, padding: '2px 6px', cursor: 'pointer', fontFamily: '"Courier New"' }}>
+            ✕ Close
+          </button>
+        </div>
+      </div>
+      <div style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
+        {processes.length === 0 ? (
+          <div style={{ padding: '12px', color: C.TEXT_DIM, fontSize: 8, textAlign: 'center', fontFamily: '"Courier New"' }}>No processes</div>
+        ) : (
+          processes.map(p => (
+            <div key={p.pid} style={{ padding: '8px 12px', borderBottom: `1px solid ${C.BORDER}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontFamily: '"Courier New"', fontSize: 8, color: C.PRI, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {p.pid} · {p.name}
+                </div>
+                <div style={{ fontFamily: '"Courier New"', fontSize: 7, color: C.TEXT_DIM, marginTop: 2 }}>
+                  CPU {p.cpu_percent.toFixed(1)}% · MEM {p.memory_percent.toFixed(1)}%
+                </div>
+              </div>
+              <button onClick={() => onKill(p.pid)}
+                style={{ fontSize: 7, color: C.RED, background: 'transparent', border: `1px solid ${C.RED}`, borderRadius: 2, padding: '2px 4px', cursor: 'pointer', fontFamily: '"Courier New"', flexShrink: 0 }}>
+                Kill
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  )
 }
 
 // ─── App ──────────────────────────────────────────────────────────────────────
@@ -421,21 +488,28 @@ export default function App() {
   }
 
   // state
-  const [muted,         setMuted]         = useState(false)
-  const [hudState,      setHudState]       = useState<HudState>('INITIALISING')
-  const [backendOnline, setBackendOnline]  = useState<boolean|null>(null)
-  const [metrics,       setMetrics]        = useState<SysMetrics>({ cpu:0,mem:0,net:0,gpu:-1,tmp:-1,uptime:'--:--',procs:0,os:'WIN' })
-  const [clock,         setClock]          = useState('')
-  const [dateStr,       setDateStr]        = useState('')
-  const [inputVal,      setInputVal]       = useState('')
-  const [loading,       setLoading]        = useState(false)
-  const [fileHint,      setFileHint]       = useState('No file loaded — drop or click above to upload')
-  const [isListening,   setIsListening]    = useState(false)
-  const [voiceSupported,setVoiceSupported] = useState(false)
+  const [muted,           setMuted]           = useState(false)
+  const [hudState,        setHudState]        = useState<HudState>('INITIALISING')
+  const [backendOnline,   setBackendOnline]   = useState<boolean|null>(null)
+  const [metrics,         setMetrics]         = useState<SysMetrics>({ cpu:0,mem:0,net:0,gpu:-1,tmp:-1,uptime:'--:--',procs:0,os:'WIN' })
+  const [clock,           setClock]           = useState('')
+  const [dateStr,         setDateStr]         = useState('')
+  const [inputVal,        setInputVal]        = useState('')
+  const [loading,         setLoading]         = useState(false)
+  const [fileHint,        setFileHint]        = useState('No file loaded — drop or click above to upload')
+  const [isListening,     setIsListening]     = useState(false)
+  const [voiceSupported,  setVoiceSupported]  = useState(false)
+  const [liveRunning,     setLiveRunning]     = useState(false)
+  const [liveStatus,      setLiveStatus]      = useState<LiveStatus>('OFFLINE')
+  const [ttsEnabled,      setTtsEnabled]      = useState(false)
+  const [showProcesses,   setShowProcesses]   = useState(false)
+  const [processes,       setProcesses]       = useState<ProcessInfo[]>([])
+  const [pendingApproval, setPendingApproval] = useState<string | null>(null)
 
   const mutedRef  = useRef(muted);   useEffect(() => { mutedRef.current = muted },   [muted])
   const loadRef   = useRef(loading); useEffect(() => { loadRef.current  = loading }, [loading])
   const onlineRef = useRef(backendOnline); useEffect(() => { onlineRef.current = backendOnline }, [backendOnline])
+  const liveRunRef = useRef(liveRunning); useEffect(() => { liveRunRef.current = liveRunning }, [liveRunning])
   const recRef    = useRef<SR>(null)
   const inputRef  = useRef<HTMLInputElement>(null)
 
@@ -451,6 +525,33 @@ export default function App() {
     checkBackend(); fetchMetrics()
     const poll = setInterval(fetchMetrics, 2000)
     return () => { clearInterval(t); clearInterval(poll); if(intervalRef.current) clearInterval(intervalRef.current); recRef.current?.abort() }
+  }, [])
+
+  // live voice state polling
+  useEffect(() => {
+    if (!liveRunRef.current) return
+    const pollLogs = setInterval(async () => {
+      try {
+        const r = await fetch(`${API_BASE}/api/live/logs`); if (!r.ok) return
+        const d = await r.json()
+        if (d.logs && Array.isArray(d.logs)) {
+          d.logs.forEach((log: string) => appendLog(log, 'sys'))
+        }
+      } catch { /* silent */ }
+    }, 2000)
+    return () => clearInterval(pollLogs)
+  }, [liveRunning])
+
+  // live state polling
+  useEffect(() => {
+    const pollState = setInterval(async () => {
+      try {
+        const r = await fetch(`${API_BASE}/api/live/state`); if (!r.ok) return
+        const d = await r.json()
+        if (d.status) setLiveStatus(d.status)
+      } catch { /* silent */ }
+    }, 3000)
+    return () => clearInterval(pollState)
   }, [])
 
   async function checkBackend() {
@@ -472,6 +573,16 @@ export default function App() {
     } catch { /* silent */ }
   }
 
+  async function fetchProcesses() {
+    try {
+      const r = await fetch(`${API_BASE}/api/processes`); if (!r.ok) return
+      const d = await r.json()
+      if (d.processes && Array.isArray(d.processes)) {
+        setProcesses(d.processes)
+      }
+    } catch { /* silent */ }
+  }
+
   const sendMessage = useCallback(async (text: string) => {
     const q = text.trim(); if (!q || loadRef.current) return
     setInputVal(''); setLoading(true); setHudState('THINKING')
@@ -480,10 +591,25 @@ export default function App() {
       const r = await fetch(`${API_BASE}/api/chat`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({message:q}) })
       if (!r.ok) throw new Error()
       const d = await r.json()
+
+      // Check for approval requirement
+      if (d.requires_approval) {
+        setPendingApproval(d.pending_action || 'Awaiting approval')
+      }
+
       let reply: string = d.reply || 'Acknowledged.'
       if (d.data?.examples?.length) reply += '\n' + (d.data.examples as string[]).map((e:string)=>`  › ${e}`).join('\n')
       setHudState('SPEAKING')
       appendLog(`Jarvis: ${reply}`, 'jarvis')
+
+      // Text-to-speech if enabled
+      if (ttsEnabled && window.speechSynthesis) {
+        window.speechSynthesis.cancel()
+        const utterance = new SpeechSynthesisUtterance(reply)
+        utterance.rate = 1.0
+        window.speechSynthesis.speak(utterance)
+      }
+
       setTimeout(() => setHudState(mutedRef.current ? 'MUTED' : 'LISTENING'), 2200)
     } catch {
       setHudState(onlineRef.current ? 'LISTENING' : 'OFFLINE')
@@ -494,7 +620,7 @@ export default function App() {
       setTimeout(() => inputRef.current?.focus(), 50)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [ttsEnabled])
 
   // voice
   function toggleMic() {
@@ -524,11 +650,95 @@ export default function App() {
     else      { setHudState('LISTENING'); appendLog('SYS: Microphone active.', 'sys') }
   }
 
+  async function toggleLiveVoice() {
+    if (liveRunning) {
+      try {
+        await fetch(`${API_BASE}/api/live/stop`, { method: 'POST' })
+        setLiveRunning(false)
+        setLiveStatus('OFFLINE')
+        appendLog('SYS: Live voice stopped.', 'sys')
+      } catch {
+        appendLog('ERR: Failed to stop live voice.', 'err')
+      }
+    } else {
+      try {
+        setLiveRunning(true)
+        setLiveStatus('CONNECTING')
+        const r = await fetch(`${API_BASE}/api/live/start`, { method: 'POST' })
+        if (r.ok) {
+          setLiveStatus('LISTENING')
+          appendLog('SYS: Live voice started.', 'sys')
+        } else {
+          setLiveRunning(false)
+          setLiveStatus('ERROR')
+          appendLog('ERR: Failed to start live voice.', 'err')
+        }
+      } catch {
+        setLiveRunning(false)
+        setLiveStatus('ERROR')
+        appendLog('ERR: Live voice connection failed.', 'err')
+      }
+    }
+  }
+
+  function toggleTts() {
+    const next = !ttsEnabled
+    setTtsEnabled(next)
+    if (next) {
+      appendLog('SYS: Text-to-speech enabled.', 'sys')
+    } else {
+      window.speechSynthesis?.cancel()
+      appendLog('SYS: Text-to-speech disabled.', 'sys')
+    }
+  }
+
+  function stopSpeaking() {
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel()
+      appendLog('SYS: Speaking stopped.', 'sys')
+    }
+  }
+
+  async function killProcess(pid: number) {
+    try {
+      await fetch(`${API_BASE}/api/process/kill`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pid }) })
+      appendLog(`SYS: Process ${pid} killed.`, 'sys')
+      await fetchProcesses()
+    } catch {
+      appendLog(`ERR: Failed to kill process ${pid}.`, 'err')
+    }
+  }
+
+  async function approveAction() {
+    try {
+      const r = await fetch(`${API_BASE}/api/approve`, { method: 'POST' })
+      if (r.ok) {
+        setPendingApproval(null)
+        appendLog('SYS: Action approved.', 'sys')
+      }
+    } catch {
+      appendLog('ERR: Failed to approve action.', 'err')
+    }
+  }
+
+  async function cancelApproval() {
+    try {
+      const r = await fetch(`${API_BASE}/api/cancel-approval`, { method: 'POST' })
+      if (r.ok) {
+        setPendingApproval(null)
+        appendLog('SYS: Approval cancelled.', 'sys')
+      }
+    } catch {
+      appendLog('ERR: Failed to cancel approval.', 'err')
+    }
+  }
+
   // F4 / F11 shortcuts (mirrors QShortcut in original)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key==='F4')  { e.preventDefault(); toggleMute() }
       if (e.key==='F11') { e.preventDefault(); document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen() }
+      if (e.key==='p' || e.key==='P') { e.preventDefault(); setShowProcesses(s => !s) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -543,16 +753,13 @@ export default function App() {
 
       {/* ── HEADER 54px ── mirrors _build_header() */}
       <div style={{ height:HEADER_H, flexShrink:0, background:C.DARK, borderBottom:`1px solid ${C.BORDER_B}`, display:'flex', alignItems:'center', padding:'0 16px' }}>
-        {/* left spacer balanced with right side */}
         <div style={{ minWidth:110 }} />
         <div style={{ flex:1 }} />
-        {/* center: J.A.R.V.I.S + subtitle */}
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:2 }}>
           <div style={{ fontFamily:'"Courier New"', fontSize:17, fontWeight:700, color:C.PRI, letterSpacing:'0.2em', textShadow:`0 0 16px ${C.PRI}, 0 0 30px ${rgba(C.PRI,0.28)}` }}>J.A.R.V.I.S</div>
           <div style={{ fontFamily:'"Courier New"', fontSize:7, color:C.PRI_DIM, letterSpacing:'0.1em' }}>Just A Rather Very Intelligent System</div>
         </div>
         <div style={{ flex:1 }} />
-        {/* right: clock + date */}
         <div style={{ minWidth:110, display:'flex', flexDirection:'column', alignItems:'flex-end', gap:2 }}>
           <div style={{ fontFamily:'"Courier New"', fontSize:14, fontWeight:700, color:C.PRI, letterSpacing:'0.1em', textShadow:`0 0 10px ${rgba(C.PRI,0.5)}` }}>{clock}</div>
           <div style={{ fontFamily:'"Courier New"', fontSize:7, color:C.TEXT_DIM, letterSpacing:'0.06em' }}>{dateStr}</div>
@@ -570,14 +777,12 @@ export default function App() {
           <MetricBar label="NET" value={Math.min(100,metrics.net*10)} text={netStr} color={C.GREEN} />
           <MetricBar label="GPU" value={metrics.gpu>=0?metrics.gpu:0} text={metrics.gpu>=0?`${metrics.gpu.toFixed(0)}%`:'N/A'} color={C.ACC} />
           <MetricBar label="TMP" value={metrics.tmp>=0?Math.min(100,metrics.tmp):0} text={metrics.tmp>=0?`${metrics.tmp.toFixed(0)}°C`:'N/A'} color="#ff6688" />
-          {/* info panel */}
           <div style={{ background:C.PANEL2, border:`1px solid ${C.BORDER}`, borderRadius:4, padding:'5px 6px', display:'flex', flexDirection:'column', gap:3, flexShrink:0 }}>
             <div style={{ fontFamily:'"Courier New"', fontSize:8, fontWeight:700, color:C.GREEN }}>UP {metrics.uptime}</div>
             <div style={{ fontFamily:'"Courier New"', fontSize:8, color:C.TEXT_MED }}>PROC {metrics.procs||'--'}</div>
             <div style={{ fontFamily:'"Courier New"', fontSize:8, color:C.ACC2 }}>OS {metrics.os}</div>
           </div>
           <div style={{ flex:1 }} />
-          {/* 3 status badges — "AI CORE\nACTIVE", "SEC\nCLEARED", "PROTOCOL\nXXXVIII" */}
           {([['AI CORE\nACTIVE',C.GREEN],['SEC\nCLEARED',C.PRI],['PROTOCOL\nXXXVIII',C.TEXT_DIM]] as [string,string][]).map(([txt,col])=>(
             <div key={txt} style={{ fontFamily:'"Courier New"', fontSize:7, fontWeight:700, color:col, textAlign:'center', whiteSpace:'pre', letterSpacing:'0.08em', lineHeight:'1.6', background:C.PANEL2, border:`1px solid ${C.BORDER_A}`, borderRadius:3, padding:'4px', textShadow:`0 0 6px ${col}`, flexShrink:0 }}>{txt}</div>
           ))}
@@ -593,6 +798,29 @@ export default function App() {
           <SLabel text="ACTIVITY LOG" />
           <LogWidget linesRef={logRef} />
           <Sep />
+
+          {/* Approval Banner */}
+          {pendingApproval && (
+            <div style={{ background: rgba(C.ACC2, 0.15), border: `1px solid ${C.ACC2}`, borderRadius: 4, padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 4, flexShrink: 0 }}>
+              <div style={{ fontFamily: '"Courier New"', fontSize: 7, fontWeight: 700, color: C.ACC2, letterSpacing: '0.08em' }}>⚠ APPROVAL REQUIRED</div>
+              <div style={{ fontFamily: '"Courier New"', fontSize: 8, color: C.WHITE, lineHeight: '1.4' }}>{pendingApproval}</div>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button onClick={approveAction}
+                  style={{ flex: 1, fontSize: 8, fontWeight: 700, color: C.GREEN, background: 'transparent', border: `1px solid ${C.GREEN}`, borderRadius: 2, padding: '4px', cursor: 'pointer', fontFamily: '"Courier New"', transition: 'all 0.15s' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = rgba(C.GREEN, 0.1) }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}>
+                  ✓ YES
+                </button>
+                <button onClick={cancelApproval}
+                  style={{ flex: 1, fontSize: 8, fontWeight: 700, color: C.RED, background: 'transparent', border: `1px solid ${C.RED}`, borderRadius: 2, padding: '4px', cursor: 'pointer', fontFamily: '"Courier New"', transition: 'all 0.15s' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = rgba(C.RED, 0.1) }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}>
+                  ✕ NO
+                </button>
+              </div>
+            </div>
+          )}
+
           <SLabel text="FILE UPLOAD" />
           <FileDropZone onFile={(name,size) => {
             setFileHint(`${name} · ${size} · Tell JARVIS what to do with it`)
@@ -601,8 +829,43 @@ export default function App() {
           }} />
           <div style={{ fontFamily:'"Courier New"', fontSize:7, color:C.TEXT_MED, lineHeight:'1.4', flexShrink:0 }}>{fileHint}</div>
           <Sep />
+
+          <SLabel text="LIVE VOICE" />
+          <button
+            onClick={toggleLiveVoice}
+            style={{ height:30, flexShrink:0, background:liveRunning?rgba(C.GREEN,0.15):'transparent', color:liveRunning?C.GREEN:C.TEXT_MED, border:`1px solid ${liveRunning?C.GREEN:C.TEXT_MED}`, borderRadius:3, fontFamily:'"Courier New"', fontSize:8, fontWeight:700, letterSpacing:'0.08em', cursor:'pointer', transition:'all 0.2s' }}
+            onMouseEnter={e => { if (!liveRunning) { (e.currentTarget as HTMLElement).style.borderColor = C.PRI; (e.currentTarget as HTMLElement).style.color = C.PRI } }}
+            onMouseLeave={e => { if (!liveRunning) { (e.currentTarget as HTMLElement).style.borderColor = C.TEXT_MED; (e.currentTarget as HTMLElement).style.color = C.TEXT_MED } }}
+          >
+            {liveRunning ? '■ STOP LIVE VOICE' : '▸ START LIVE VOICE'}
+          </button>
+          <div style={{ fontFamily:'"Courier New"', fontSize:8, color:liveStatus==='OFFLINE'?C.TEXT_DIM:liveStatus==='ERROR'?C.RED:liveStatus==='LISTENING'?C.GREEN:liveStatus==='SPEAKING'?C.ACC:C.PRI, fontWeight:700, letterSpacing:'0.08em', flexShrink:0 }}>
+            ● {liveStatus}
+          </div>
+          <Sep />
+
+          <SLabel text="TEXT-TO-SPEECH" />
+          <button
+            onClick={toggleTts}
+            style={{ height:30, flexShrink:0, background:ttsEnabled?rgba(C.ACC,0.15):'transparent', color:ttsEnabled?C.ACC:C.TEXT_MED, border:`1px solid ${ttsEnabled?C.ACC:C.TEXT_MED}`, borderRadius:3, fontFamily:'"Courier New"', fontSize:8, fontWeight:700, letterSpacing:'0.08em', cursor:'pointer', transition:'all 0.2s' }}
+            onMouseEnter={e => { if (!ttsEnabled) { (e.currentTarget as HTMLElement).style.borderColor = C.PRI; (e.currentTarget as HTMLElement).style.color = C.PRI } }}
+            onMouseLeave={e => { if (!ttsEnabled) { (e.currentTarget as HTMLElement).style.borderColor = C.TEXT_MED; (e.currentTarget as HTMLElement).style.color = C.TEXT_MED } }}
+          >
+            🔊 {ttsEnabled ? 'ENABLED' : 'DISABLED'}
+          </button>
+          {ttsEnabled && (
+            <button
+              onClick={stopSpeaking}
+              style={{ height:26, flexShrink:0, background:'transparent', color:C.RED, border:`1px solid ${C.RED}`, borderRadius:3, fontFamily:'"Courier New"', fontSize:7, fontWeight:700, letterSpacing:'0.08em', cursor:'pointer', transition:'all 0.15s' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = C.ACC }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = C.RED }}
+            >
+              ■ STOP SPEAKING
+            </button>
+          )}
+          <Sep />
+
           <SLabel text="COMMAND INPUT" />
-          {/* input row */}
           <div style={{ display:'flex', gap:5, flexShrink:0 }}>
             <input
               ref={inputRef} type="text" value={inputVal} disabled={loading}
@@ -620,12 +883,19 @@ export default function App() {
               onMouseLeave={e=>{ (e.currentTarget as HTMLElement).style.background=C.PANEL;(e.currentTarget as HTMLElement).style.borderColor=C.PRI_DIM }}
             >▸</button>
           </div>
-          {/* mic button — mirrors _style_mute_btn() */}
+
           <button
             onClick={voiceSupported ? toggleMic : toggleMute}
             style={{ height:30, flexShrink:0, background:muted?'#140006':isListening?rgba(C.PRI_GHO,1):'#00140a', color:muted?C.MUTED_C:isListening?C.PRI:C.GREEN, border:`1px solid ${muted?C.MUTED_C:isListening?C.PRI:C.GREEN}`, borderRadius:3, fontFamily:'"Courier New"', fontSize:8, fontWeight:700, letterSpacing:'0.08em', cursor:'pointer', transition:'background 0.2s' }}
           >{muted ? '🔇 MICROPHONE MUTED' : isListening ? '🎙 LISTENING…' : '🎙 MICROPHONE ACTIVE'}</button>
-          {/* fullscreen button */}
+
+          <button
+            onClick={() => { setShowProcesses(true); fetchProcesses() }}
+            style={{ height:26, flexShrink:0, background:'transparent', color:C.TEXT_MED, border:`1px solid ${C.BORDER}`, borderRadius:3, fontSize:7, fontFamily:'"Courier New"', letterSpacing:'0.1em', cursor:'pointer', transition:'all 0.15s' }}
+            onMouseEnter={e=>{ (e.currentTarget as HTMLElement).style.color=C.PRI;(e.currentTarget as HTMLElement).style.borderColor=C.BORDER_B }}
+            onMouseLeave={e=>{ (e.currentTarget as HTMLElement).style.color=C.TEXT_MED;(e.currentTarget as HTMLElement).style.borderColor=C.BORDER }}
+          >▸ PROCESSES [P]</button>
+
           <button
             onClick={()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}
             style={{ height:26, flexShrink:0, background:'transparent', color:C.TEXT_MED, border:`1px solid ${C.BORDER}`, borderRadius:3, fontSize:7, fontFamily:'"Courier New"', letterSpacing:'0.1em', cursor:'pointer', transition:'all 0.15s' }}
@@ -635,14 +905,35 @@ export default function App() {
         </div>
       </div>
 
-      {/* ── FOOTER 22px — mirrors _build_footer() */}
-      <div style={{ height:FOOTER_H, flexShrink:0, background:C.DARK, borderTop:`1px solid ${C.BORDER}`, display:'flex', alignItems:'center', padding:'0 14px' }}>
-        <span style={{ fontFamily:'"Courier New"', fontSize:7, color:C.TEXT_MED, letterSpacing:'0.08em' }}>[F4] Mute · [F11] Fullscreen</span>
-        <div style={{ flex:1 }} />
-        <span style={{ fontFamily:'"Courier New"', fontSize:7, color:C.TEXT_MED, letterSpacing:'0.06em' }}>J.A.R.V.I.S · MARK XXXIX · CLASSIFIED</span>
+      {/* ── BOTTOM STRIP 18px — API status, mode, live status, approval indicator ── */}
+      <div style={{ height:BOTTOM_STRIP_H, flexShrink:0, background:C.DARK, borderTop:`1px solid ${C.BORDER}`, display:'flex', alignItems:'center', padding:'0 12px', gap:16 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <div style={{ width:6, height:6, borderRadius:'50%', background:backendOnline?C.GREEN:backendOnline===false?C.RED:C.ACC2, boxShadow:`0 0 6px ${backendOnline?C.GREEN:backendOnline===false?C.RED:C.ACC2}` }} />
+          <span style={{ fontFamily:'"Courier New"', fontSize:7, color:C.TEXT_DIM, letterSpacing:'0.08em' }}>API</span>
+        </div>
+        <span style={{ fontFamily:'"Courier New"', fontSize:7, color:C.TEXT_MED, letterSpacing:'0.08em' }}>{hudState}</span>
+        {liveRunning && <span style={{ fontFamily:'"Courier New"', fontSize:7, color:C.GREEN, letterSpacing:'0.08em', fontWeight:700 }}>● LIVE</span>}
+        {pendingApproval && <span style={{ fontFamily:'"Courier New"', fontSize:7, color:C.ACC2, letterSpacing:'0.08em', fontWeight:700 }}>⚠ APPROVAL</span>}
         <div style={{ flex:1 }} />
         <span style={{ fontFamily:'"Courier New"', fontSize:7, color:C.PRI_DIM, letterSpacing:'0.08em' }}>© STARK INDUSTRIES</span>
       </div>
+
+      {/* ── FOOTER 22px ── */}
+      <div style={{ height:FOOTER_H, flexShrink:0, background:C.DARK, borderTop:`1px solid ${C.BORDER}`, display:'flex', alignItems:'center', padding:'0 14px' }}>
+        <span style={{ fontFamily:'"Courier New"', fontSize:7, color:C.TEXT_MED, letterSpacing:'0.08em' }}>[F4] Mute · [F11] Fullscreen · [P] Processes</span>
+        <div style={{ flex:1 }} />
+        <span style={{ fontFamily:'"Courier New"', fontSize:7, color:C.TEXT_MED, letterSpacing:'0.06em' }}>J.A.R.V.I.S · MARK XXXIX · CLASSIFIED</span>
+      </div>
+
+      {/* ── Floating Processes Panel ── */}
+      {showProcesses && (
+        <ProcessesPanel
+          processes={processes}
+          onClose={() => setShowProcesses(false)}
+          onKill={killProcess}
+          onRefresh={fetchProcesses}
+        />
+      )}
 
       <style>{`input::placeholder{color:${rgba(C.TEXT_DIM,0.5)};}`}</style>
     </div>

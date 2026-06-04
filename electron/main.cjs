@@ -9,7 +9,7 @@ function createWindow() {
     height: 950,
     minWidth: 1200,
     minHeight: 760,
-    title: "J.A.R.V.I.S — Mark XXXIX",
+    title: "J.A.R.V.I.S — AAYAM",
     backgroundColor: "#050b14",
     autoHideMenuBar: true,
     webPreferences: {
