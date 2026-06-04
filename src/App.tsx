@@ -210,22 +210,53 @@ export default function App() {
     setActiveNav(id)
   }
 
-  const sendMessage = (text: string) => {
+  const sendMessage = async (text: string) => {
     const q = text.trim()
     if (!q || typing) return
+
     setChatInput('')
     setMessages(p => [...p, { role: 'user', text: q }])
     setTyping(true)
-    setTimeout(() => {
-      setTyping(false)
+
+    try {
+      const response = await fetch('http://localhost:8000/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: q }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Backend returned ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      let reply = data.reply || 'JARVIS received your command.'
+
+      if (data.data?.examples && Array.isArray(data.data.examples)) {
+        reply += `\n\nExamples:\n${data.data.examples.map((item: string) => `• ${item}`).join('\n')}`
+      }
+
       setMessages(p => [
         ...p,
         {
           role: 'nexus',
-          text: `Request received: "${q}"\n\nIn a connected deployment, NEXUS would route this to the appropriate operations module — analyzing context, cross-referencing your runbooks, and surfacing actionable recommendations across integrated systems.\n\n⚠ Human approval required before any production execution.`,
+          text: reply,
         },
       ])
-    }, 1600)
+    } catch (error) {
+      setMessages(p => [
+        ...p,
+        {
+          role: 'nexus',
+          text: 'Backend is offline or unreachable. Make sure Docker backend is running on http://localhost:8000.',
+        },
+      ])
+    } finally {
+      setTyping(false)
+    }
   }
 
   return (
